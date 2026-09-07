@@ -1,0 +1,20 @@
+# Dependencies
+node_modules/
+backend/venv/
+__pycache__/
+*.pyc
+
+# Environment & Secret Keys
+.env
+.env.local
+.claude/
+
+# Build artifacts
+frontend/dist/
+frontend/build/
+
+# Uploaded files and local test exports
+backend/uploads/*
+!backend/uploads/.gitkeep
+*.pdf
+*.png

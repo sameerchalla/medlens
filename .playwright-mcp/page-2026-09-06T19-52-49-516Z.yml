@@ -1,0 +1,171 @@
+- generic [ref=e3]:
+  - generic [ref=e7]:
+    - paragraph [ref=e8]: Medical Disclaimer
+    - paragraph [ref=e9]:
+      - text: MedLens is for
+      - strong [ref=e10]: informational purposes only
+      - text: . Always consult qualified healthcare professionals for medical decisions. Do not make clinical decisions based solely on this tool.
+  - banner [ref=e11]:
+    - generic [ref=e12]:
+      - generic [ref=e17]:
+        - heading "MedLens" [level=1] [ref=e18]
+        - paragraph [ref=e19]: Clinical Information Dashboard
+      - button "Print / Export" [ref=e21] [cursor=pointer]
+  - main [ref=e27]:
+    - generic [ref=e28]:
+      - button "Load Scenario A" [active] [ref=e29] [cursor=pointer]
+      - button "Load Scenario B" [ref=e30] [cursor=pointer]
+      - button "Clear" [ref=e31] [cursor=pointer]
+      - generic [ref=e32]: Backend Connected
+    - generic [ref=e33]:
+      - generic [ref=e34]:
+        - heading "1 Patient Intake & Source" [level=2] [ref=e35]:
+          - generic [ref=e36]: "1"
+          - text: Patient Intake & Source
+        - generic [ref=e37]:
+          - generic [ref=e38]:
+            - heading "Patient Demographics" [level=3] [ref=e44]
+            - generic [ref=e45]: Patient Provided
+          - generic [ref=e47]:
+            - generic [ref=e48]:
+              - generic [ref=e49]: "Age:"
+              - generic [ref=e51]:
+                - generic [ref=e52]: 52 years
+                - button [ref=e53] [cursor=pointer]
+            - generic [ref=e57]:
+              - generic [ref=e58]: "Sex:"
+              - generic [ref=e60]:
+                - generic [ref=e61]: Female
+                - button [ref=e62] [cursor=pointer]
+        - generic [ref=e66]:
+          - generic [ref=e67]:
+            - heading "Reported Symptoms" [level=3] [ref=e74]
+            - generic [ref=e75]: Patient Provided
+          - generic [ref=e77]:
+            - generic [ref=e78]: "Chief Complaint:"
+            - generic [ref=e80]:
+              - generic [ref=e81]: Chronic fatigue, low energy, mild shortness of breath on stairs
+              - button [ref=e82] [cursor=pointer]
+        - generic [ref=e86]:
+          - generic [ref=e87]:
+            - heading "Allergies" [level=3] [ref=e92]
+            - generic [ref=e93]: Patient Provided
+          - generic [ref=e95]:
+            - generic [ref=e96]: "Known Allergies:"
+            - generic [ref=e98]:
+              - generic [ref=e99]: Penicillin
+              - button [ref=e100] [cursor=pointer]
+        - generic [ref=e104]:
+          - generic [ref=e105]:
+            - heading "Current Medications" [level=3] [ref=e111]
+            - generic [ref=e112]: Patient Provided
+          - generic [ref=e114]:
+            - generic [ref=e115]: "Active Meds:"
+            - generic [ref=e117]:
+              - generic [ref=e118]: Lisinopril 10mg daily, Multivitamin
+              - button [ref=e119] [cursor=pointer]
+        - generic [ref=e123]:
+          - generic [ref=e124]:
+            - heading "Source Document" [level=3] [ref=e129]
+            - generic [ref=e130]: "Accepted: .pdf, .txt, .csv"
+          - generic [ref=e131]:
+            - generic [ref=e132]:
+              - button "Choose File" [ref=e133] [cursor=pointer]
+              - generic [ref=e134]:
+                - paragraph [ref=e138]: Drag and drop your document here
+                - paragraph [ref=e139]: or click to browse
+            - generic [ref=e140]:
+              - button "Process Document" [disabled] [ref=e141]
+              - paragraph [ref=e145]: Extracts lab values and generates summary
+      - generic [ref=e146]:
+        - heading "2 Structured Findings & Verification" [level=2] [ref=e147]:
+          - generic [ref=e148]: "2"
+          - text: Structured Findings & Verification
+        - generic [ref=e149]:
+          - generic [ref=e150]:
+            - generic [ref=e171]:
+              - heading "Lab Results" [level=3] [ref=e174]
+              - generic [ref=e175]: 5 items
+            - generic [ref=e176]: "Source: CBC_Inflammatory_Report.pdf"
+          - table [ref=e177]:
+            - rowgroup [ref=e178]:
+              - row [ref=e179]:
+                - columnheader "Test Name" [ref=e180]
+                - columnheader "Value" [ref=e181]
+                - columnheader "Unit" [ref=e182]
+                - columnheader "Reference Range" [ref=e183]
+                - columnheader "Status" [ref=e184]
+                - columnheader "Provenance" [ref=e185]
+                - columnheader "Actions" [ref=e186]
+            - rowgroup [ref=e187]:
+              - row [ref=e188]:
+                - cell "Hemoglobin" [ref=e189]
+                - cell "9.4" [ref=e190]
+                - cell "g/dL" [ref=e191]
+                - cell "12.0 - 15.5 g/dL" [ref=e192]
+                - cell "LOW" [ref=e193]
+                - cell "AI Extracted" [ref=e196]
+                - cell [ref=e199]:
+                  - button "Edit value" [ref=e200] [cursor=pointer]
+              - row [ref=e204]:
+                - cell "White Blood Cell Count" [ref=e205]
+                - cell "11.8" [ref=e206]
+                - cell "x10^3/uL" [ref=e207]
+                - cell "4.5 - 11.0 x10^3/uL" [ref=e208]
+                - cell "HIGH" [ref=e209]
+                - cell "AI Extracted" [ref=e212]
+                - cell [ref=e215]:
+                  - button "Edit value" [ref=e216] [cursor=pointer]
+              - row [ref=e220]:
+                - cell "Platelets" [ref=e221]
+                - cell "245" [ref=e222]
+                - cell "x10^3/uL" [ref=e223]
+                - cell "150 - 450 x10^3/uL" [ref=e224]
+                - cell "NORMAL" [ref=e225]
+                - cell "AI Extracted" [ref=e228]
+                - cell [ref=e231]:
+                  - button "Edit value" [ref=e232] [cursor=pointer]
+              - row [ref=e236]:
+                - cell "Ferritin" [ref=e237]
+                - cell "14" [ref=e238]
+                - cell "ng/mL" [ref=e239]
+                - cell "No reference" [ref=e240]
+                - cell "UNSPECIFIED" [ref=e241]
+                - cell "AI Extracted" [ref=e244]
+                - cell [ref=e247]:
+                  - button "Edit value" [ref=e248] [cursor=pointer]
+              - row [ref=e252]:
+                - cell "C-Reactive Protein (CRP)" [ref=e253]
+                - cell "8.2" [ref=e254]
+                - cell "mg/L" [ref=e255]
+                - cell "< 3.0 mg/L" [ref=e256]
+                - cell "HIGH" [ref=e257]
+                - cell "AI Extracted" [ref=e260]
+                - cell [ref=e263]:
+                  - button "Edit value" [ref=e264] [cursor=pointer]
+        - generic [ref=e268]:
+          - generic [ref=e269]:
+            - heading "Potential Correlations" [level=3] [ref=e272]
+            - generic [ref=e273]: "2"
+          - generic [ref=e274]:
+            - generic [ref=e280]:
+              - generic [ref=e281]:
+                - generic [ref=e282]: Fatigue symptoms
+                - generic [ref=e283]: →
+                - generic [ref=e284]: Low Hemoglobin (9.4)
+              - paragraph [ref=e285]: Low hemoglobin may contribute to fatigue. Consider evaluating for anemia.
+            - generic [ref=e291]:
+              - generic [ref=e292]:
+                - generic [ref=e293]: Shortness of breath
+                - generic [ref=e294]: →
+                - generic [ref=e295]: Low Hemoglobin (9.4)
+              - paragraph [ref=e296]: Low hemoglobin (anemia) can cause shortness of breath. Evaluate for underlying cause.
+          - paragraph [ref=e301]: These are observational correlations for discussion with a clinician. They do not constitute a diagnosis or treatment recommendation.
+        - generic [ref=e159]:
+          - generic [ref=e160]:
+            - heading "AI Clinical Summary" [level=3] [ref=e306]
+            - generic [ref=e307]: "Generated from: CBC_Inflammatory_Report.pdf"
+          - generic [ref=e165]: "LABORATORY RESULTS SUMMARY ======================================== Source: CBC_Inflammatory_Report.pdf Results Within Reference Range: • Platelets: 245 x10^3/uL Reference: 150 - 450 x10^3/uL Results Outside Reference Range: • Hemoglobin: 9.4 g/dL [LOW] Reference: 12.0 - 15.5 g/dL • White Blood Cell Count: 11.8 x10^3/uL [HIGH] Reference: 4.5 - 11.0 x10^3/uL • C-Reactive Protein (CRP): 8.2 mg/L [HIGH] Reference: < 3.0 mg/L Results (No Reference Range in Source Document): • Ferritin: 14 ng/mL Note: No reference range was provided in the source document. ---------------------------------------- DISCLAIMER: This summary is generated for informational purposes only. MedLens is a documentation tool and does not provide medical advice. Always consult qualified healthcare professionals for medical decisions. Do not make clinical decisions based solely on this tool."
+          - paragraph [ref=e310]:
+            - strong [ref=e311]: "Note:"
+            - text: This summary is for informational purposes only. Always consult qualified healthcare professionals for medical decisions.
