@@ -238,18 +238,18 @@ Do not make clinical decisions based solely on this tool.
   );
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-slate-900">
       <MedicalDisclaimer />
       <Header apiStatus={apiStatus} />
-      <main className="max-w-7xl mx-auto px-4 py-6">
+      <main className="max-w-7xl mx-auto px-4 py-6 dark:text-slate-100">
           {/* Error Banner */}
           {error && (
-            <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-3">
+            <div className="mb-6 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-lg p-4 flex items-center gap-3">
               <XCircle className="w-5 h-5 text-red-500 flex-shrink-0" />
-              <p className="text-red-700">{error}</p>
+              <p className="text-red-700 dark:text-red-300">{error}</p>
               <button
                 onClick={() => setError(null)}
-                className="ml-auto text-red-500 hover:text-red-700"
+                className="ml-auto text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300"
               >
                 <XCircle className="w-5 h-5" />
               </button>
@@ -260,23 +260,23 @@ Do not make clinical decisions based solely on this tool.
           <div className="mb-6 flex items-center gap-3">
             <button
               onClick={() => loadScenario('A')}
-              className="px-3 py-1.5 text-sm font-medium text-primary-700 bg-primary-50 border border-primary-200 rounded-lg hover:bg-primary-100 transition-colors"
+              className="px-3 py-1.5 text-sm font-medium text-primary-700 dark:text-primary-300 bg-primary-50 dark:bg-primary-900/40 border border-primary-200 dark:border-primary-800 rounded-lg hover:bg-primary-100 dark:hover:bg-primary-900/60 transition-colors"
             >
               Load Scenario A
             </button>
             <button
               onClick={() => loadScenario('B')}
-              className="px-3 py-1.5 text-sm font-medium text-primary-700 bg-primary-50 border border-primary-200 rounded-lg hover:bg-primary-100 transition-colors"
+              className="px-3 py-1.5 text-sm font-medium text-primary-700 dark:text-primary-300 bg-primary-50 dark:bg-primary-900/40 border border-primary-200 dark:border-primary-800 rounded-lg hover:bg-primary-100 dark:hover:bg-primary-900/60 transition-colors"
             >
               Load Scenario B
             </button>
             <button
               onClick={clearData}
-              className="px-3 py-1.5 text-sm font-medium text-gray-600 bg-gray-100 border border-gray-200 rounded-lg hover:bg-gray-200 transition-colors"
+              className="px-3 py-1.5 text-sm font-medium text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg hover:bg-gray-200 dark:hover:bg-slate-700 transition-colors"
             >
               Clear
             </button>
-            <span className="ml-auto text-xs text-gray-400">
+            <span className="ml-auto text-xs text-gray-400 dark:text-slate-500">
               {apiStatus === 'connected' ? 'Backend Connected' : apiStatus === 'disconnected' ? 'Backend Offline' : 'Checking...'}
             </span>
           </div>
@@ -285,8 +285,8 @@ Do not make clinical decisions based solely on this tool.
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* LEFT COLUMN - Intake & Source */}
             <div className="space-y-4">
-              <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                <span className="w-8 h-8 rounded-full bg-primary-100 text-primary-600 flex items-center justify-center text-sm font-bold">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-slate-100 flex items-center gap-2">
+                <span className="w-8 h-8 rounded-full bg-primary-100 dark:bg-primary-900/50 text-primary-600 dark:text-primary-300 flex items-center justify-center text-sm font-bold">
                   1
                 </span>
                 Patient Intake & Source
@@ -335,8 +335,8 @@ Do not make clinical decisions based solely on this tool.
 
             {/* RIGHT COLUMN - Structured Findings */}
             <div className="space-y-4">
-              <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                <span className="w-8 h-8 rounded-full bg-primary-100 text-primary-600 flex items-center justify-center text-sm font-bold">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-slate-100 flex items-center gap-2">
+                <span className="w-8 h-8 rounded-full bg-primary-100 dark:bg-primary-900/50 text-primary-600 dark:text-primary-300 flex items-center justify-center text-sm font-bold">
                   2
                 </span>
                 Structured Findings & Verification

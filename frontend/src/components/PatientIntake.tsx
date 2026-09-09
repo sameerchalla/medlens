@@ -19,15 +19,15 @@ interface IntakeCardProps {
 function IntakeCard({ title, icon, children, source, sourceFile }: IntakeCardProps) {
   const isPatientReported = source === 'patient_reported';
   const badgeClass = isPatientReported
-    ? 'bg-blue-50 text-blue-700 border-blue-200'
-    : 'bg-purple-50 text-purple-700 border-purple-200';
+    ? 'bg-blue-50 dark:bg-blue-900/40 text-blue-700 dark:text-blue-200 border-blue-200 dark:border-blue-800'
+    : 'bg-purple-50 dark:bg-purple-900/40 text-purple-700 dark:text-purple-200 border-purple-200 dark:border-purple-800';
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-      <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+    <div className="bg-white dark:bg-slate-900 rounded-lg border border-gray-200 dark:border-slate-800 overflow-hidden">
+      <div className="px-4 py-3 border-b border-gray-100 dark:border-slate-700 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <span className="text-gray-400">{icon}</span>
-          <h3 className="font-medium text-gray-900">{title}</h3>
+          <span className="text-gray-400 dark:text-slate-300">{icon}</span>
+          <h3 className="font-medium text-gray-900 dark:text-slate-100">{title}</h3>
         </div>
         <span className={`text-xs px-2 py-1 rounded border ${badgeClass}`}>
           {isPatientReported ? 'Patient Provided' : `AI Extracted • ${sourceFile || ''}`}
@@ -63,7 +63,7 @@ function IntakeField({ label, value, editable, onEdit }: IntakeFieldProps) {
 
   return (
     <div className="flex items-start gap-3 py-1">
-      <span className="text-sm text-gray-500 min-w-[100px] pt-1">{label}:</span>
+      <span className="text-sm text-gray-500 dark:text-slate-300 min-w-[100px] pt-1">{label}:</span>
       <div className="flex-1">
         {editing ? (
           <div className="flex items-center gap-2">
@@ -71,31 +71,31 @@ function IntakeField({ label, value, editable, onEdit }: IntakeFieldProps) {
               type="text"
               value={editValue}
               onChange={(e) => setEditValue(e.target.value)}
-              className="flex-1 px-2 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+              className="flex-1 px-2 py-1 text-sm border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 rounded focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
               autoFocus
             />
             <button
               onClick={handleSave}
-              className="text-xs text-primary-600 hover:text-primary-700"
+              className="text-xs text-primary-600 dark:text-primary-300 hover:text-primary-700 dark:hover:text-primary-200"
             >
               Save
             </button>
             <button
               onClick={handleCancel}
-              className="text-xs text-gray-500 hover:text-gray-700"
+              className="text-xs text-gray-500 dark:text-slate-300 hover:text-gray-700 dark:hover:text-slate-200"
             >
               Cancel
             </button>
           </div>
         ) : (
           <div className="flex items-center gap-2">
-            <span className="text-sm text-gray-900">
-              {value || <span className="text-gray-400 italic">Not provided</span>}
+            <span className="text-sm text-gray-900 dark:text-slate-100">
+              {value || <span className="text-gray-400 dark:text-slate-300 italic">Not provided</span>}
             </span>
             {editable && (
               <button
                 onClick={() => setEditing(true)}
-                className="text-gray-400 hover:text-gray-600"
+                className="text-gray-400 dark:text-slate-300 hover:text-gray-600 dark:hover:text-slate-200"
               >
                 <Pencil className="w-3 h-3" />
               </button>

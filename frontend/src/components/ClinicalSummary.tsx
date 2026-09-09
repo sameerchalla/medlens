@@ -15,15 +15,15 @@ interface ClinicalSummaryProps {
 export function ClinicalSummary({ summary, sourceFilename }: ClinicalSummaryProps) {
   if (!summary) {
     return (
-      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-        <div className="px-4 py-3 border-b border-gray-100 flex items-center gap-2">
-          <FileText className="w-4 h-4 text-gray-400" />
-          <h3 className="font-medium text-gray-900">AI Clinical Summary</h3>
+      <div className="bg-white dark:bg-slate-900 rounded-lg border border-gray-200 dark:border-slate-800 overflow-hidden">
+        <div className="px-4 py-3 border-b border-gray-100 dark:border-slate-700 flex items-center gap-2">
+          <FileText className="w-4 h-4 text-gray-400 dark:text-slate-300" />
+          <h3 className="font-medium text-gray-900 dark:text-slate-100">AI Clinical Summary</h3>
         </div>
         <div className="p-8 text-center">
-          <FileText className="w-12 h-12 text-gray-200 mx-auto mb-3" />
-          <p className="text-gray-500">No summary available</p>
-          <p className="text-sm text-gray-400 mt-1">
+          <FileText className="w-12 h-12 text-gray-200 dark:text-slate-800 mx-auto mb-3" />
+          <p className="text-gray-500 dark:text-slate-300">No summary available</p>
+          <p className="text-sm text-gray-400 dark:text-slate-300 mt-1">
             Process a document to generate an AI summary
           </p>
         </div>
@@ -32,25 +32,25 @@ export function ClinicalSummary({ summary, sourceFilename }: ClinicalSummaryProp
   }
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-      <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+    <div className="bg-white dark:bg-slate-900 rounded-lg border border-gray-200 dark:border-slate-800 overflow-hidden">
+      <div className="px-4 py-3 border-b border-gray-100 dark:border-slate-700 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <FileText className="w-4 h-4 text-gray-400" />
-          <h3 className="font-medium text-gray-900">AI Clinical Summary</h3>
+          <FileText className="w-4 h-4 text-gray-400 dark:text-slate-300" />
+          <h3 className="font-medium text-gray-900 dark:text-slate-100">AI Clinical Summary</h3>
         </div>
         {sourceFilename && (
-          <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
+          <span className="text-xs text-gray-500 dark:text-slate-300 bg-gray-100 dark:bg-slate-800 px-2 py-1 rounded">
             Generated from: {sourceFilename}
           </span>
         )}
       </div>
       <div className="p-4">
-        <pre className="whitespace-pre-wrap text-sm text-gray-700 font-sans leading-relaxed">
+        <pre className="whitespace-pre-wrap text-sm text-gray-700 font-sans leading-relaxed dark:text-slate-100">
           {summary}
         </pre>
       </div>
       {/* Disclaimer Footer */}
-      <div className="px-4 py-3 bg-amber-50 border-t border-amber-100">
+      <div className="px-4 py-3 bg-amber-50 dark:bg-amber-900/20 border-t border-amber-100 dark:border-amber-900/50">
         <p className="text-xs text-amber-800">
           <strong>Note:</strong> This summary is for informational purposes only.
           Always consult qualified healthcare professionals for medical decisions.
@@ -97,18 +97,18 @@ function CorrelationCard({ correlation }: { correlation: Correlation }) {
   const style = styles[correlation.severity];
 
   return (
-    <div className={`${style.bg} border ${style.border} rounded-lg p-4`}>
+    <div className={`${style.bg} border ${style.border} dark:border-slate-700 rounded-lg p-4`}>
       <div className="flex items-start gap-3">
         <div className={`p-2 rounded-lg ${style.iconBg} ${style.icon}`}>
           <Lightbulb className="w-5 h-5" />
         </div>
         <div className="flex-1">
           <div className="flex items-center gap-2 mb-1">
-            <span className="font-medium text-gray-900">{correlation.symptom}</span>
-            <span className="text-gray-400">→</span>
-            <span className="font-medium text-gray-900">{correlation.labFinding}</span>
+            <span className="font-medium text-gray-900 dark:text-slate-100">{correlation.symptom}</span>
+            <span className="text-gray-400 dark:text-slate-300">→</span>
+            <span className="font-medium text-gray-900 dark:text-slate-100">{correlation.labFinding}</span>
           </div>
-          <p className="text-sm text-gray-600">{correlation.observation}</p>
+          <p className="text-sm text-gray-600 dark:text-slate-300">{correlation.observation}</p>
         </div>
       </div>
     </div>
@@ -121,11 +121,11 @@ export function CorrelationCallout({ correlations }: CorrelationCalloutProps) {
   }
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-      <div className="px-4 py-3 border-b border-gray-100 flex items-center gap-2">
-        <MessageSquare className="w-4 h-4 text-gray-400" />
-        <h3 className="font-medium text-gray-900">Potential Correlations</h3>
-        <span className="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
+    <div className="bg-white dark:bg-slate-900 rounded-lg border border-gray-200 dark:border-slate-800 overflow-hidden">
+      <div className="px-4 py-3 border-b border-gray-100 dark:border-slate-700 flex items-center gap-2">
+        <MessageSquare className="w-4 h-4 text-gray-400 dark:text-slate-300" />
+        <h3 className="font-medium text-gray-900 dark:text-slate-100">Potential Correlations</h3>
+        <span className="text-xs text-gray-400 dark:text-slate-300 bg-gray-100 dark:bg-slate-800 px-2 py-0.5 rounded-full">
           {correlations.length}
         </span>
       </div>
@@ -134,9 +134,9 @@ export function CorrelationCallout({ correlations }: CorrelationCalloutProps) {
           <CorrelationCard key={correlation.id} correlation={correlation} />
         ))}
       </div>
-      <div className="px-4 py-3 bg-slate-50 border-t border-slate-100">
-        <div className="flex items-start gap-2 text-xs text-slate-600">
-          <AlertCircle className="w-4 h-4 text-slate-400 flex-shrink-0 mt-0.5" />
+      <div className="px-4 py-3 bg-slate-50 dark:bg-slate-800 border-t border-slate-100 dark:border-slate-700">
+        <div className="flex items-start gap-2 text-xs text-slate-600 dark:text-slate-300">
+          <AlertCircle className="w-4 h-4 text-slate-400 dark:text-slate-300 flex-shrink-0 mt-0.5" />
           <p>
             These are observational correlations for discussion with a clinician.
             They do not constitute a diagnosis or treatment recommendation.

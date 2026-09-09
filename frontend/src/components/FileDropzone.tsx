@@ -112,13 +112,13 @@ export default function FileDropzone({
   };
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-      <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+    <div className="bg-white dark:bg-slate-900 rounded-lg border border-gray-200 dark:border-slate-800 overflow-hidden">
+      <div className="px-4 py-3 border-b border-gray-100 dark:border-slate-700 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Upload className="w-4 h-4 text-gray-400" />
-          <h3 className="font-medium text-gray-900">Source Document</h3>
+          <Upload className="w-4 h-4 text-gray-400 dark:text-slate-300" />
+          <h3 className="font-medium text-gray-900 dark:text-slate-100">Source Document</h3>
         </div>
-        <span className="text-xs text-gray-400">
+        <span className="text-xs text-gray-400 dark:text-slate-300">
           Accepted: {acceptedTypes.join(', ')}
         </span>
       </div>
@@ -131,8 +131,8 @@ export default function FileDropzone({
           onDrop={handleDrop}
           className={`
             relative border-2 border-dashed rounded-lg p-8 text-center transition-colors
-            ${isDragging ? 'border-primary-500 bg-primary-50' : 'border-gray-300 hover:border-gray-400'}
-            ${selectedFile ? 'border-green-400 bg-green-50' : ''}
+            ${isDragging ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20' : 'border-gray-300 dark:border-slate-600 hover:border-gray-400 dark:hover:border-slate-500'}
+            ${selectedFile ? 'border-green-400 bg-green-50 dark:bg-green-900/20' : ''}
           `}
         >
           <input
@@ -147,8 +147,8 @@ export default function FileDropzone({
             <div className="flex items-center justify-center gap-3">
               <File className="w-8 h-8 text-green-600" />
               <div className="text-left">
-                <p className="font-medium text-gray-900">{selectedFile.name}</p>
-                <p className="text-sm text-gray-500">
+                <p className="font-medium text-gray-900 dark:text-slate-100">{selectedFile.name}</p>
+                <p className="text-sm text-gray-500 dark:text-slate-300">
                   {(selectedFile.size / 1024).toFixed(1)} KB
                 </p>
               </div>
@@ -158,7 +158,7 @@ export default function FileDropzone({
                     e.stopPropagation();
                     handleClear();
                   }}
-                  className="ml-4 text-gray-400 hover:text-red-500"
+                  className="ml-4 text-gray-400 dark:text-slate-300 hover:text-red-500 dark:hover:text-red-400"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -166,11 +166,11 @@ export default function FileDropzone({
             </div>
           ) : (
             <div>
-              <Upload className="w-10 h-10 text-gray-400 mx-auto mb-3" />
-              <p className="text-gray-600 font-medium">
+              <Upload className="w-10 h-10 text-gray-400 dark:text-slate-300 mx-auto mb-3" />
+              <p className="text-gray-600 dark:text-slate-300 font-medium">
                 Drag and drop your document here
               </p>
-              <p className="text-sm text-gray-400 mt-1">
+              <p className="text-sm text-gray-400 dark:text-slate-300 mt-1">
                 or click to browse
               </p>
             </div>
@@ -179,7 +179,7 @@ export default function FileDropzone({
 
         {/* Error Message */}
         {error && (
-          <div className="mt-3 flex items-center gap-2 text-red-600 text-sm">
+          <div className="mt-3 flex items-center gap-2 text-red-600 dark:text-red-400 text-sm">
             <X className="w-4 h-4" />
             {error}
           </div>
@@ -195,7 +195,7 @@ export default function FileDropzone({
               ${
                 selectedFile && !isProcessing
                   ? 'bg-primary-600 text-white hover:bg-primary-700'
-                  : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                  : 'bg-gray-100 dark:bg-slate-800 text-gray-400 dark:text-slate-300 cursor-not-allowed'
               }
             `}
           >
@@ -211,7 +211,7 @@ export default function FileDropzone({
               </>
             )}
           </button>
-          <p className="text-xs text-gray-400 text-center mt-2">
+          <p className="text-xs text-gray-400 dark:text-slate-300 text-center mt-2">
             Extracts lab values and generates summary
           </p>
         </div>
