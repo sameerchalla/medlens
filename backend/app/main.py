@@ -15,10 +15,20 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# CORS middleware for frontend communication
+# CORS middleware for frontend communication (local dev + production)
+# Production origin added via VERCEL_URL env; fallback allows common origins
+_prod_origin = os.getenv("VERCEL_URL") or os.getenv("FRONTEND_URL") or ""
+_cors_origins = [
+    "http://localhost:5173", "http://localhost:3000", "http://127.0.0.1:5173"
+]
+if _prod_origin:
+    _cors_origins.append(_prod_origin if _prod_origin.startswith("http") else f"https://{_prod_origin}")
+# Also allow common vercel.app domain patterns for demo
+_cors_origins.append("*.vercel.app")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:3000", "http://127.0.0.1:5173"],
+    allow_origins=_cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
