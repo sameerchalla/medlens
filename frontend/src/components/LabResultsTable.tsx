@@ -15,30 +15,33 @@ export type LabStatus = 'LOW' | 'NORMAL' | 'HIGH' | 'UNSPECIFIED';
  * Supports formats like: "12.0 - 15.5 g/dL", "4.5 - 11.0 x10^3/uL", "< 3.0 mg/L", "> 100 mg/dL"
  */
 export function calculateStatus(value: string, referenceRange: string): LabStatus {
-  const numValue = parseFloat(value);
-  if (isNaN(numValue)) return 'UNSPECIFIED';
+  const cleanVal = value.replace(/^[LH]\s*/, '').replace(/,/g, '').trim();
+  const numValue = parseFloat(cleanVal);
+  if (isNaN(numValue) || !referenceRange) return 'UNSPECIFIED';
 
-  // Handle "< X" format (e.g., "< 3.0 mg/L" means HIGH if above X)
-  const lessThanMatch = referenceRange.match(/^<\s*([\d.]+)/);
+  const cleanRange = referenceRange.replace(/^(?:reference|ref|normal|range)\s*:\s*/i, '').trim();
+
+  // Handle "<= X", "≤ X", "< X" format
+  const lessThanMatch = cleanRange.match(/^(?:<=|≤|<)\s*([\d.,]+)/);
   if (lessThanMatch) {
-    const max = parseFloat(lessThanMatch[1]);
+    const max = parseFloat(lessThanMatch[1].replace(/,/g, ''));
     if (numValue > max) return 'HIGH';
     return 'NORMAL';
   }
 
-  // Handle "> X" format (e.g., "> 100 mg/dL" means LOW if below X)
-  const greaterThanMatch = referenceRange.match(/^>\s*([\d.]+)/);
+  // Handle ">= X", "≥ X", "> X" format
+  const greaterThanMatch = cleanRange.match(/^(?:>=|≥|>)\s*([\d.,]+)/);
   if (greaterThanMatch) {
-    const min = parseFloat(greaterThanMatch[1]);
+    const min = parseFloat(greaterThanMatch[1].replace(/,/g, ''));
     if (numValue < min) return 'LOW';
     return 'NORMAL';
   }
 
-  // Handle "X - Y" format (e.g., "12.0 - 15.5 g/dL")
-  const rangeMatch = referenceRange.match(/^([\d.]+)\s*-\s*([\d.]+)/);
+  // Handle "X - Y" or "X to Y" format
+  const rangeMatch = cleanRange.match(/([\d.,]+)\s*(?:-|to)\s*([\d.,]+)/i);
   if (rangeMatch) {
-    const min = parseFloat(rangeMatch[1]);
-    const max = parseFloat(rangeMatch[2]);
+    const min = parseFloat(rangeMatch[1].replace(/,/g, ''));
+    const max = parseFloat(rangeMatch[2].replace(/,/g, ''));
     if (numValue < min) return 'LOW';
     if (numValue > max) return 'HIGH';
     return 'NORMAL';
@@ -54,7 +57,7 @@ export interface LabItem {
   reference_range_source: string;
   status: LabStatus;
   source_snippet: string;
-  provenance?: 'patient_reported' | 'ai_extracted';
+  provenance?: 'patient_reported' | 'ai_extracted' | string;
   source_file?: string;
   verified?: boolean;
   verified_by?: 'user';
@@ -136,7 +139,7 @@ function EditableRow({ item, index, onSave, onCancel }: EditableRowProps) {
       status: newStatus,
       verified: true,
       verified_by: 'user',
-      provenance: 'patient_reported',
+      provenance: 'verified_by_user',
     };
     onSave(index, updated);
   };
@@ -333,7 +336,7 @@ export default function LabResultsTable({
       </div>
 
       {/* Print-only view: clean, standard table layout for @media print */}
-      <div className="hidden print:block mt-3">
+      <div className="hidden print:block mt-3" aria-hidden="true">
         <table className="w-full text-left border-collapse text-xs">
           <thead>
             <tr className="border-b-2 border-slate-400">

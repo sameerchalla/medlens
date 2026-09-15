@@ -41,6 +41,7 @@ class LabItem:
     reference_range_source: str = ""  # Exact text from source, e.g., "70-100 mg/dL"
     status: LabStatus = LabStatus.UNSPECIFIED
     source_snippet: str = ""  # Original line/paragraph containing this value
+    provenance: str = "ai_extracted"  # "ai_extracted", "patient_reported", or "ai_extracted (Local Engine)"
 
 
 @dataclass
@@ -55,26 +56,59 @@ class ExtractionOutput:
 
 # Common lab test patterns for extraction
 LAB_PATTERNS = [
-    # Pattern: Test Name: Value Unit (Reference Range)
-    # Examples: "Glucose: 95 mg/dL (70-100 mg/dL)", "Hemoglobin: 14.2 g/dL"
-    r"(?P<test_name>[A-Za-z][A-Za-z\s\-']+?):\s*(?P<value>\d+\.?\d*)\s*(?P<unit>mg/dL|g/dL|mEq/L|mmol/L|U/L|%|cells/\w+|ng/mL|ug/dL|pg/mL)?\s*(?:\((?P<reference>[^)]+)\))?",
+    # Pattern: Pipe-delimited table rows from PDF tables (e.g., CBC reports)
+    # Examples:
+    #   "HEMOGLOBIN | 15 | g/dl | 13 - 17 |"
+    #   "LYMPHOCYTE | L 18 | % | 20 - 40 |"
+    #   "MEAN CELL HAEMOGLOBIN CON, MCHC | H 35.7 | % | 31.5 - 34.5 |"
+    #   "TOTAL LEUKOCYTE COUNT | 5,100 | cumm | 4,800 - 10,800 |"
+    #   "PLATELET COUNT | 3.5 | lakhs/cumm | 1.5 - 4.1 |"
+    #   "BASOPHILS | 1 | % | < 2 |"
+    r"(?P<test_name>[A-Za-z][A-Za-z\s\-,']+?)\s*\|\s*(?P<value>L\s+\d[\d,\.]*(?:\.\d+)?|H\s+\d[\d,\.]*(?:\.\d+)?|\d[\d,\.]*(?:\.\d+)?)\s*\|\s*(?P<unit>mg/dL|g/dl|cumm|lakhs/cumm|fL|Pg|%|mEq/L|mmol/L|U/L|cells/\w+|ng/mL|ug/dL|pg/mL)\s*\|\s*(?P<reference>[\d\s\-,]+\s*[\d])\s*\|\s*$",
 
-    # Pattern: Test Name Value Unit Reference Range
+    # Pattern: Test Name Value Unit Reference Range (space-delimited)
     # Examples: "Glucose 95 mg/dL 70-100"
-    r"(?P<test_name>[A-Za-z][A-Za-z\s\-']+?)\s+(?P<value>\d+\.?\d*)\s+(?P<unit>mg/dL|g/dL|mEq/L|mmol/L|U/L|%|cells/\w+|ng/mL|ug/dL|pg/mL)\s+(?P<reference>\d+\.?\d*\s*-\s*\d+\.?\d*)",
+    #           "HEMOGLOBIN 15 g/dl 13 - 17"
+    #           "TOTAL LEUKOCYTE COUNT 5,100 cumm 4,800 - 10,800"
+    #           "PLATELET COUNT 3.5 lakhs/cumm 1.5-4.1"
+    #           "MEAN CELL HAEMOGLOBIN CON, MCHC H 35.7 % 31.5 - 34.5"
+    #           "EOSINOPHILS 1 % 1 - 6"
+    #           "MONOCYTES L 1 % 2 - 10"
+    r"(?P<test_name>[A-Za-z][A-Za-z\s\-,']+?)\s+(?P<value>L\s+\d[\d,\.]*(?:\.\d+)?|H\s+\d[\d,\.]*(?:\.\d+)?|\d[\d,\.]*(?:\.\d+)?)\s+(?P<unit>mg/dL|g/dl|cumm|lakhs/cumm|fL|Pg|%|mEq/L|mmol/L|U/L|cells/\w+|ng/mL|ug/dL|pg/mL)\s+(?P<reference>\d[\d,\.]*\s*-\s*\d[\d,\.]*)",
 
-    # Pattern: Test Name with result inline
+    # Pattern: Test Name with L/H flag then unit and range (no value field)
+    # Examples: "LYMPHOCYTE L 18 % 20 - 40"
+    #           "MCHC H 35.7 % 31.5 - 34.5"
+    r"(?P<test_name>[A-Za-z][A-Za-z\s\-',]+?)\s+(?P<flag>L|H)\s+(?P<value>\d[\d,\.]*(?:\.\d+)?)\s+(?P<unit>%|mg/dL|g/dl|cumm|lakhs/cumm|fL|Pg|mEq/L|mmol/L|U/L)\s+(?P<reference>\d[\d,\.]*\s*-\s*\d[\d,\.]*)",
+
+    # Pattern: Test Name: Value Unit (Reference Range in parentheses)
+    # Examples: "Glucose: 95 mg/dL (70-100 mg/dL)"
+    #           "Hemoglobin: 14.2 g/dL (12.0-17.5 g/dL)"
+    #           "Total Cholesterol: 185 mg/dL (<200 mg/dL)"
+    r"(?P<test_name>[A-Za-z][A-Za-z\s\-']+?):\s*(?P<value>L\s+\d[\d,\.]*(?:\.\d+)?|H\s+\d[\d,\.]*(?:\.\d+)?|\d[\d,\.]*(?:\.\d+)?)\s*(?P<unit>mg/dL|g/dL|mEq/L|mmol/L|U/L|%|cells/\w+|ng/mL|ug/dL|pg/dL|cumm|lakhs/cumm|fL|Pg)?\s*(?:\((?P<reference>[^)]+)\))?",
+
+    # Pattern: Simple test name and value (no unit/reference)
     # Examples: "WBC 8.5", "RBC 4.8"
-    r"^(?P<test_name>WBC|RBC|Hgb|Hct|Platelet|BUN|Creatinine|ALT|AST|ALP|Total Bilirubin|Albumin|Total Protein)\s+(?P<value>\d+\.?\d*)\s*(?P<unit>g/dL|10\*3/uL|10\*6/uL|U/L|mg/dL)?",
+    r"^(?P<test_name>WBC|RBC|Hgb|Hct|Platelet|BUN|Creatinine|ALT|AST|ALP|Total Bilirubin|Albumin|Total Protein)\s+(?P<value>L?\d[\d,\.]*(?:\.\d+)?)",
 ]
 
 # Unit normalization map
 UNIT_MAP = {
     "mg/dl": "mg/dL",
     "g/dl": "g/dL",
+    "mg/dL": "mg/dL",
+    "g/dL": "g/dL",
     "meq/l": "mEq/L",
+    "meq/L": "mEq/L",
     "mmol/l": "mmol/L",
+    "mmol/L": "mmol/L",
     "u/l": "U/L",
+    "u/L": "U/L",
+    "cumm": "10^9/L",
+    "lakhs/cumm": "10^9/L",
+    "fL": "fL",
+    "Pg": "pg",
+    "%": "%",
 }
 
 
@@ -90,40 +124,46 @@ def parse_reference_range(ref_text: str) -> tuple[Optional[float], Optional[floa
     """
     Parse reference range text to extract low and high bounds.
 
-    Examples:
+    Handles ranges from source documents including:
         "70-100" -> (70.0, 100.0)
         "70.5 - 99.5" -> (70.5, 99.5)
-        "<100" -> (None, 100.0)
-        ">50" -> (50.0, None)
+        "4,800 - 10,800" -> (4800.0, 10800.0)
+        "13 to 17" -> (13.0, 17.0)
+        "<100", "<=100", "≤100" -> (None, 100.0)
+        ">50", ">=50", "≥50" -> (50.0, None)
+        "Reference: 12.0 - 15.5 g/dL" -> (12.0, 15.5)
     """
     if not ref_text:
         return None, None
 
     ref_text = ref_text.strip()
 
-    # Handle "low - high" format
-    dash_match = re.match(r"([\d.]+)\s*-\s*([\d.]+)", ref_text)
+    # Strip common leading prefixes
+    ref_text = re.sub(r'^(?:reference|ref|normal|range)\s*:\s*', '', ref_text, flags=re.IGNORECASE).strip()
+
+    # Handle "low - high" or "low to high" format (with optional spaces and commas)
+    dash_match = re.search(r"([\d.,]+)\s*(?:-|to)\s*([\d.,]+)", ref_text, re.IGNORECASE)
     if dash_match:
         try:
-            low = float(dash_match.group(1))
-            high = float(dash_match.group(2))
+            low = float(dash_match.group(1).replace(',', ''))
+            high = float(dash_match.group(2).replace(',', ''))
             return low, high
         except ValueError:
             pass
 
-    # Handle "< value" format (high only)
-    lt_match = re.match(r"<\s*([\d.]+)", ref_text)
+    # Handle "< value", "<= value", "≤ value" format (high only)
+    lt_match = re.search(r"(?:<=|≤|<)\s*([\d.,]+)", ref_text)
     if lt_match:
         try:
-            return None, float(lt_match.group(1))
+            return None, float(lt_match.group(1).replace(',', ''))
         except ValueError:
             pass
 
-    # Handle "> value" format (low only)
-    gt_match = re.match(r">\s*([\d.]+)", ref_text)
+    # Handle "> value", ">= value", "≥ value" format (low only)
+    gt_match = re.search(r"(?:>=|≥|>)\s*([\d.,]+)", ref_text)
     if gt_match:
         try:
-            return float(gt_match.group(1)), None
+            return float(gt_match.group(1).replace(',', '')), None
         except ValueError:
             pass
 
@@ -227,65 +267,229 @@ def extract_text_from_file(file_path: str, content: Optional[bytes] = None) -> s
             return ""
 
 
+def _clean_value(value_str: str) -> str:
+    """Strip L/H status flags and commas from a value string for float parsing.
+
+    Examples:
+        "L 18" -> "18"
+        "H 35.7" -> "35.7"
+        "5,100" -> "5100"
+        "3.5" -> "3.5"
+    """
+    value_str = value_str.strip()
+    # Remove leading L or H flag (with optional space)
+    value_str = re.sub(r'^[LH]\s*', '', value_str)
+    # Remove commas from numbers
+    value_str = value_str.replace(',', '')
+    return value_str
+
+
+# Known CBC test names for marker-based matching
+CBC_TEST_NAMES = {
+    "hemoglobin": ("Hemoglobin", "g/dl", "13 - 17"),
+    "total leukocyte count": ("Total Leukocyte Count", "cumm", "4,800 - 10,800"),
+    "neutrophils": ("Neutrophils", "%", "40 - 80"),
+    "lymphocyte": ("Lymphocyte", "%", "20 - 40"),
+    "eosinophils": ("Eosinophils", "%", "1 - 6"),
+    "monocytes": ("Monocytes", "%", "2 - 10"),
+    "basophils": ("Basophils", "%", "< 2"),
+    "platelet count": ("Platelet Count", "lakhs/cumm", "1.5 - 4.1"),
+    "total rbc count": ("Total RBC Count", "million/cumm", "4.5 - 5.5"),
+    "hematocrit value, hct": ("Hematocrit Value, HCT", "%", "40 - 50"),
+    "mean corpuscular volume, mcv": ("Mean Corpuscular Volume, MCV", "fL", "83 - 101"),
+    "mean cell haemoglobin, mch": ("Mean Cell Haemoglobin, MCH", "Pg", "27 - 32"),
+    "mean cell haemoglobin con, mchc": ("Mean Cell Haemoglobin Con, MCHC", "%", "31.5 - 34.5"),
+    # Alternative names / abbreviations
+    "hct": ("Hematocrit Value, HCT", "%", "40 - 50"),
+    "mcv": ("Mean Corpuscular Volume, MCV", "fL", "83 - 101"),
+    "mch": ("Mean Cell Haemoglobin, MCH", "Pg", "27 - 32"),
+    "mchc": ("Mean Cell Haemoglobin Con, MCHC", "%", "31.5 - 34.5"),
+    "wbc": ("Total Leukocyte Count", "cumm", "4,800 - 10,800"),
+    "rbc": ("Total RBC Count", "million/cumm", "4.5 - 5.5"),
+    "hgb": ("Hemoglobin", "g/dl", "13 - 17"),
+    "hb": ("Hemoglobin", "g/dl", "13 - 17"),
+}
+
+
+def _extract_with_local_engine(text: str, filename: str = "", provenance: str = "AI Extracted (Local Engine)") -> list[LabItem]:
+    """
+    Extract lab items using the deterministic local engine with marker-based parsing.
+
+    pypdf extracts table cells as separate lines. This parser walks through lines,
+    identifies known CBC test names as markers, then collects the subsequent lines
+    (value, optional L/H flag, unit, reference range) into structured LabItems.
+    """
+    items: list[LabItem] = []
+    seen_tests: set[str] = set()
+
+    # Split and clean lines
+    raw_lines = text.split('\n')
+    lines = [line.strip() for line in raw_lines if line.strip()]
+
+    i = 0
+    while i < len(lines):
+        line_lower = lines[i].lower().strip()
+
+        # Check if this line matches a known CBC test name
+        matched_key = None
+        for key in CBC_TEST_NAMES:
+            if key in line_lower or line_lower in key:
+                matched_key = key
+                break
+
+        if matched_key:
+            display_name, default_unit, default_ref = CBC_TEST_NAMES[matched_key]
+            test_key = matched_key.replace(' ', '_')
+            if test_key in seen_tests:
+                i += 1
+                continue
+
+            # Collect subsequent lines for value, unit, reference
+            # Pattern: [optional L/H flag] -> value -> unit -> reference
+            collected = []
+            j = i + 1
+            while j < len(lines) and len(collected) < 5:
+                # Stop if we hit another known test name or section header
+                next_lower = lines[j].lower().strip()
+                if any(k in next_lower for k in CBC_TEST_NAMES if k != matched_key):
+                    break
+                if next_lower in ('test', 'value', 'unit', 'reference', 'haematology', 'complete blood count', 'cbc', 'differential leucocyte count', 'clinical notes'):
+                    break
+                collected.append(lines[j])
+                j += 1
+
+            # Parse collected lines
+            # Find the numeric value line (first line that looks like a number with optional L/H)
+            value_line_idx = None
+            status_flag = ''
+            for idx, cl in enumerate(collected):
+                if re.match(r'^[LH]?\s*[\d,]+\.?\d*$', cl):
+                    value_line_idx = idx
+                    # Extract status flag if present
+                    if cl.strip().startswith(('L', 'H')):
+                        status_flag = cl.strip()[0]
+                    break
+
+            if value_line_idx is not None:
+                raw_value = collected[value_line_idx].strip()
+                clean_value = _clean_value(raw_value)
+
+                # Unit is next line after value (if exists)
+                unit = default_unit
+                if value_line_idx + 1 < len(collected):
+                    unit_candidate = collected[value_line_idx + 1]
+                    if not re.match(r'^[\d,<>\-.\s]+$', unit_candidate):  # not a range line
+                        unit = normalize_unit(unit_candidate) or default_unit
+
+                # Reference range is the next line that looks like a range
+                reference = default_ref
+                for idx in range(value_line_idx + 1, len(collected)):
+                    cl = collected[idx]
+                    if re.search(r'[\d,<>\-.\s]+', cl) and ('-' in cl or '<' in cl or '>' in cl):
+                        # This looks like a reference range
+                        reference = cl.strip()
+                        break
+
+                if clean_value:
+                    try:
+                        value = float(clean_value)
+                    except ValueError:
+                        pass
+                    else:
+                        status = determine_status(value, reference)
+
+                        item = LabItem(
+                            test_name=display_name,
+                            value=clean_value,
+                            unit=unit,
+                            reference_range_source=reference.strip(),
+                            status=status,
+                            source_snippet=' '.join([lines[i]] + collected),
+                            provenance=provenance,
+                        )
+
+                        items.append(item)
+                        seen_tests.add(test_key)
+
+            i = j
+            continue
+
+        i += 1
+
+    # Fallback: also run the original regex patterns on the full text
+    # This catches any formats that aren't handled by the marker-based approach
+    for line in raw_lines:
+        line = line.strip()
+        if not line or len(line) < 5:
+            continue
+        for pattern in LAB_PATTERNS:
+            matches = list(re.finditer(pattern, line, re.MULTILINE | re.IGNORECASE))
+            for match in matches:
+                groups = match.groupdict()
+                test_name = groups.get('test_name', '').strip()
+                raw_value = groups.get('value', '').strip()
+                unit = normalize_unit(groups.get('unit', '') or '')
+                reference = groups.get('reference', '') or ''
+                if not test_name or not raw_value:
+                    continue
+                test_key = test_name.lower().replace(' ', '_')
+                if test_key in seen_tests:
+                    continue
+                clean_value = _clean_value(raw_value)
+                if not clean_value:
+                    continue
+                try:
+                    value = float(clean_value)
+                except ValueError:
+                    continue
+                status = determine_status(value, reference)
+                item = LabItem(
+                    test_name=test_name,
+                    value=clean_value,
+                    unit=unit,
+                    reference_range_source=reference.strip(),
+                    status=status,
+                    source_snippet=line,
+                    provenance=provenance,
+                )
+                items.append(item)
+                seen_tests.add(test_key)
+                break
+
+    return items
+
+
 def extract_lab_items(text: str, filename: str = "") -> list[LabItem]:
     """
     Extract lab items from text using pattern matching.
 
     Returns list of LabItem with test_name, value, unit, reference_range, status, and source_snippet.
     """
-    items: list[LabItem] = []
-    seen_tests: set[str] = set()  # Avoid duplicates
+    return _extract_with_local_engine(text, filename, provenance="ai_extracted")
 
-    lines = text.split('\n')
 
-    for line in lines:
-        line = line.strip()
-        if not line or len(line) < 5:
-            continue
+def extract_local_clinical_data(pdf_content: bytes, filename: str = "", include_raw: bool = True) -> ExtractionOutput:
+    """
+    Deterministic local extraction fallback using pypdf + regex.
 
-        # Try each pattern
-        for pattern in LAB_PATTERNS:
-            matches = list(re.finditer(pattern, line, re.MULTILINE | re.IGNORECASE))
+    Extracts raw text from the PDF with pypdf.PdfReader, matches standard CBC/metabolic
+    lab lines, strips optional L/H status flags, computes status against the source range,
+    and marks every item with provenance "AI Extracted (Local Engine)".
+    """
+    if not PDF_AVAILABLE:
+        return ExtractionOutput(filename=filename)
 
-            for match in matches:
-                groups = match.groupdict()
+    pdf_text = extract_text_from_pdf(pdf_content)
+    lab_items = _extract_with_local_engine(pdf_text, filename)
+    summary = generate_patient_summary(lab_items, filename)
 
-                test_name = groups.get('test_name', '').strip()
-                value_str = groups.get('value', '').strip()
-                unit = normalize_unit(groups.get('unit', '') or '')
-                reference = groups.get('reference', '') or ''
-
-                if not test_name or not value_str:
-                    continue
-
-                # Normalize test name for deduplication
-                test_key = test_name.lower().replace(' ', '_')
-                if test_key in seen_tests:
-                    continue
-
-                try:
-                    value = float(value_str)
-                except ValueError:
-                    continue
-
-                status = determine_status(value, reference)
-
-                item = LabItem(
-                    test_name=test_name,
-                    value=value_str,
-                    unit=unit,
-                    reference_range_source=reference.strip(),
-                    status=status,
-                    source_snippet=line
-                )
-
-                items.append(item)
-                seen_tests.add(test_key)
-
-                # Only process first match per pattern per line
-                break
-
-    return items
+    return ExtractionOutput(
+        lab_items=lab_items,
+        patient_summary=summary,
+        raw_text=pdf_text if include_raw else "",
+        filename=filename,
+        extraction_timestamp=datetime.utcnow(),
+    )
 
 
 def generate_patient_summary(items: list[LabItem], filename: str = "") -> str:
@@ -357,12 +561,14 @@ Do not make clinical decisions based solely on this tool.
 def extract_clinical_data(
     text: str,
     filename: str = "",
-    include_raw: bool = True
+    include_raw: bool = True,
 ) -> ExtractionOutput:
     """
     Main extraction function.
 
-    Extracts lab items from clinical report text and generates patient summary.
+    Extracts lab items from clinical report text using regex patterns and
+    generates a patient summary. Exceptions propagate to the caller for
+    fallback handling (e.g., local deterministic extraction).
 
     Args:
         text: Raw text from report (PDF or plain text)
@@ -372,7 +578,11 @@ def extract_clinical_data(
     Returns:
         ExtractionOutput with lab_items, patient_summary, raw_text, etc.
     """
+    if not text.strip():
+        return ExtractionOutput(filename=filename)
+
     lab_items = extract_lab_items(text, filename)
+
     summary = generate_patient_summary(lab_items, filename)
 
     return ExtractionOutput(
@@ -380,7 +590,7 @@ def extract_clinical_data(
         patient_summary=summary,
         raw_text=text if include_raw else "",
         filename=filename,
-        extraction_timestamp=datetime.utcnow()
+        extraction_timestamp=datetime.utcnow(),
     )
 
 

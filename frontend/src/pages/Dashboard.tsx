@@ -7,7 +7,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { XCircle } from 'lucide-react';
-import { checkHealth } from '../lib/api';
+import { checkHealth, uploadReport, extractFromReport } from '../lib/api';
 import MedicalDisclaimer from '../components/MedicalDisclaimer';
 import Header from '../components/Header';
 import {
@@ -79,6 +79,8 @@ export default function Dashboard() {
   const [apiStatus, setApiStatus] = useState<ApiStatus>('loading');
   const [error, setError] = useState<string | null>(null);
 
+  const STORAGE_KEY = 'medlens_patient_session';
+
   // Patient data
   const [patientData, setPatientData] = useState<{
     age?: number;
@@ -86,16 +88,77 @@ export default function Dashboard() {
     symptoms?: string;
     allergies?: string;
     medications?: string;
-  }>({});
+  }>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          return parsed.patientData || {};
+        }
+      } catch {}
+    }
+    return {};
+  });
 
   // Lab data
-  const [labItems, setLabItems] = useState<LabItem[]>([]);
-  const [baseSummary, setBaseSummary] = useState<string>('');
-  const [sourceFilename, setSourceFilename] = useState<string>('');
+  const [labItems, setLabItems] = useState<LabItem[]>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          return parsed.labItems || [];
+        }
+      } catch {}
+    }
+    return [];
+  });
+  const [baseSummary, setBaseSummary] = useState<string>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          return parsed.baseSummary || '';
+        }
+      } catch {}
+    }
+    return '';
+  });
+  const [sourceFilename, setSourceFilename] = useState<string>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          return parsed.sourceFilename || '';
+        }
+      } catch {}
+    }
+    return '';
+  });
   const [correlations, setCorrelations] = useState<Correlation[]>([]);
 
   // Processing state
   const [isProcessing, setIsProcessing] = useState(false);
+
+  // Persist session changes to localStorage
+  useEffect(() => {
+    try {
+      if (Object.keys(patientData).length > 0 || labItems.length > 0 || baseSummary) {
+        localStorage.setItem(
+          STORAGE_KEY,
+          JSON.stringify({
+            patientData,
+            labItems,
+            baseSummary,
+            sourceFilename,
+          })
+        );
+      }
+    } catch {}
+  }, [patientData, labItems, baseSummary, sourceFilename]);
 
   // Generate dynamic summary that includes verification notes
   const summary = useMemo(() => {
@@ -180,6 +243,9 @@ export default function Dashboard() {
     setSourceFilename('');
     setCorrelations([]);
     setError(null);
+    try {
+      localStorage.removeItem(STORAGE_KEY);
+    } catch {}
   }, []);
 
   // Handle file extraction
@@ -188,38 +254,33 @@ export default function Dashboard() {
     setError(null);
 
     try {
-      // For demo purposes, use mock extraction
-      // In production, this would call extractFromText(file content, file.name, 'live')
-      setLabItems([
-        {
-          test_name: 'Glucose',
-          value: '95',
-          unit: 'mg/dL',
-          reference_range_source: '70-100 mg/dL',
-          status: 'NORMAL',
-          source_snippet: `Glucose: 95 mg/dL (70-100 mg/dL)`,
-          provenance: 'ai_extracted',
-          source_file: file.name,
-        },
-      ]);
-      setBaseSummary(`
-LABORATORY RESULTS SUMMARY
-========================================
+      // Step 1: Upload the binary file to /api/reports/upload
+      const uploadedReport = await uploadReport(file, 'lab_report');
 
-Source: ${file.name}
+      // Step 2: Extract data from the uploaded report using /api/reports/{id}/extract
+      const data = await extractFromReport(uploadedReport.id);
 
-Results Within Reference Range:
-  • Glucose: 95 mg/dL
-    Reference: 70-100 mg/dL
+      // Map backend lab_items to frontend LabItem schema
+      const formattedItems: LabItem[] = (data.lab_items || []).map((item: any) => ({
+        test_name: item.test_name || item.testName,
+        value: String(item.value),
+        unit: item.unit || '',
+        reference_range_source: item.reference_range_source || item.referenceRange || '',
+        status: item.status,
+        source_snippet: item.source_snippet || '',
+        provenance: item.provenance || 'ai_extracted',
+        source_file: file.name,
+        verified: false,
+        verified_by: undefined,
+      }));
 
-----------------------------------------
+      if (formattedItems.length === 0) {
+        setError('No structured laboratory values were identified in this document. Please verify the file contains printed lab tests with values and reference ranges.');
+      }
 
-DISCLAIMER: This summary is for informational purposes only.
-MedLens is a documentation tool and does not provide medical advice.
-Always consult qualified healthcare professionals for medical decisions.
-Do not make clinical decisions based solely on this tool.
-      `.trim());
-      setSourceFilename(file.name);
+      setLabItems(formattedItems);
+      setBaseSummary(data.patient_summary || '');
+      setSourceFilename(data.filename || file.name);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Extraction failed');
     } finally {

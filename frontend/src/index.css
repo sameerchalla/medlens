@@ -1,8 +1,8 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
 :root {
   font-family: 'Inter', system-ui, sans-serif;
@@ -70,13 +70,6 @@ body {
    ============================================ */
 
 @media print {
-  /* Reset background and colors for clean printing */
-  * {
-    -webkit-print-color-adjust: exact !important;
-    print-color-adjust: exact !important;
-    color-adjust: exact !important;
-  }
-
   /* Page setup - compact margins */
   @page {
     size: A4;
@@ -183,6 +176,37 @@ body {
     margin-bottom: 0.5rem !important;
     page-break-inside: avoid !important;
     break-inside: avoid !important;
+  }
+
+  /* Ensure intake cards and grid children do not clip content in print */
+  .intake-card,
+  .intake-card > *,
+  .intake-card .grid,
+  .intake-card .grid > * {
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  /* Intake badges must sit beside values, not overlap them */
+  .intake-badge {
+    position: static !important;
+    flex: 0 0 auto !important;
+    margin-left: 0.5rem !important;
+    white-space: nowrap !important;
+    font-size: 6pt !important;
+    padding: 0.1rem 0.25rem !important;
+  }
+
+  .intake-label {
+    color: #6b7280 !important;
+    font-size: 8pt !important;
+    flex: 0 0 auto !important;
+  }
+
+  .intake-value {
+    color: #111827 !important;
+    font-size: 8pt !important;
+    font-weight: 500 !important;
   }
 
   /* Two-column layout becomes stacked single column */
@@ -311,18 +335,15 @@ body {
     display: table-cell !important;
   }
   /* Remove any mobile-responsive hiding during print */
-  .hidden {
-    display: revert !important;
+  /* Guarantee print-variant toggles override the .hidden revert rule */
+  .print\:hidden {
+    display: none !important;
   }
 
-  /* Ensure no display:none is applied to td, span, or row content in print */
-  td,
-  span,
-  tbody tr {
-    display: revert !important;
-    visibility: visible !important;
-    opacity: 1 !important;
+  .print\:block {
+    display: block !important;
   }
+
 
   /* ===== STATUS BADGES ===== */
   .inline-flex.items-center.gap-1\.5 {
@@ -392,6 +413,25 @@ body {
     line-height: 1.2 !important;
   }
 
+  /* Correlation cards must show their text on white print paper */
+  .correlation-card,
+  .correlation-card * {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+
+  .correlation-card .font-medium,
+  .correlation-card p,
+  .correlation-card span,
+  .correlation-card .text-sm {
+    color: #0f172a !important;
+  }
+
+  .correlation-card .text-gray-400,
+  .correlation-card .dark\:text-slate-300 {
+    color: #475569 !important;
+  }
+
   /* ===== CLINICAL SUMMARY ===== */
   .whitespace-pre-wrap {
     white-space: pre-wrap !important;
@@ -402,6 +442,16 @@ body {
   pre {
     white-space: pre-wrap !important;
     word-break: break-word !important;
+    overflow: visible !important;
+    height: auto !important;
+  }
+
+  /* Clinical Summary card must keep text and disclaimer together */
+  .bg-white.dark\:bg-slate-900 {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+    overflow: visible !important;
+    height: auto !important;
   }
 
   /* Summary footer disclaimer */

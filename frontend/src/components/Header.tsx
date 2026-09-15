@@ -36,7 +36,10 @@ export default function Header({ apiStatus }: HeaderProps) {
           </button>
 
           <button
+            type="button"
             onClick={toggleTheme}
+            aria-label="Toggle dark mode"
+            aria-pressed={theme === 'dark'}
             className="print:hidden flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-slate-100 bg-gray-100 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg hover:bg-gray-200 dark:hover:bg-slate-700 transition-colors"
             title="Toggle Dark Mode"
           >

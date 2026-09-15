@@ -7,6 +7,7 @@ from enum import Enum
 class ProvenanceType(str, Enum):
     PATIENT_REPORTED = "patient_reported"
     AI_EXTRACTED = "ai_extracted"
+    VERIFIED_BY_USER = "verified_by_user"
 
 
 class ReportType(str, Enum):
@@ -56,9 +57,9 @@ class PatientRecord(BaseModel):
 
 class PatientCreate(BaseModel):
     """Request to create a new patient."""
-    patient_id: Optional[str] = None
-    name: Optional[str] = None
-    date_of_birth: Optional[str] = None
+    patient_id: Optional[str] = Field(default=None, max_length=100)
+    name: Optional[str] = Field(default=None, max_length=200)
+    date_of_birth: Optional[str] = Field(default=None, max_length=50)
 
 
 class ExtractionResult(BaseModel):

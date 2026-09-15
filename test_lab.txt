@@ -1,6 +1,0 @@
-Test Patient: John Doe 
-Date: 2026-06-15 
-Hemoglobin: 10.2 g/dL (Reference: 13.5 - 17.5 g/dL) 
-Glucose: 110 mg/dL (Reference: 70 - 99 mg/dL) 
-Platelets: 220 x103/uL (Reference: 150 - 450 x103/uL) 
-Vitamin D: 24 ng/mL 

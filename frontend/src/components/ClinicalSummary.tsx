@@ -15,7 +15,7 @@ interface ClinicalSummaryProps {
 export function ClinicalSummary({ summary, sourceFilename }: ClinicalSummaryProps) {
   if (!summary) {
     return (
-      <div className="bg-white dark:bg-slate-900 rounded-lg border border-gray-200 dark:border-slate-800 overflow-hidden">
+      <div className="bg-white dark:bg-slate-900 rounded-lg border border-gray-200 dark:border-slate-800 overflow-visible break-inside-avoid print:overflow-visible">
         <div className="px-4 py-3 border-b border-gray-100 dark:border-slate-700 flex items-center gap-2">
           <FileText className="w-4 h-4 text-gray-400 dark:text-slate-300" />
           <h3 className="font-medium text-gray-900 dark:text-slate-100">AI Clinical Summary</h3>
@@ -32,7 +32,7 @@ export function ClinicalSummary({ summary, sourceFilename }: ClinicalSummaryProp
   }
 
   return (
-    <div className="bg-white dark:bg-slate-900 rounded-lg border border-gray-200 dark:border-slate-800 overflow-hidden">
+    <div className="bg-white dark:bg-slate-900 rounded-lg border border-gray-200 dark:border-slate-800 overflow-visible break-inside-avoid print:overflow-visible">
       <div className="px-4 py-3 border-b border-gray-100 dark:border-slate-700 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <FileText className="w-4 h-4 text-gray-400 dark:text-slate-300" />
@@ -45,7 +45,7 @@ export function ClinicalSummary({ summary, sourceFilename }: ClinicalSummaryProp
         )}
       </div>
       <div className="p-4">
-        <pre className="whitespace-pre-wrap text-sm text-gray-700 font-sans leading-relaxed dark:text-slate-100">
+        <pre className="whitespace-pre-wrap text-sm text-gray-700 font-sans leading-relaxed dark:text-slate-100 print:text-slate-900">
           {summary}
         </pre>
       </div>
@@ -75,40 +75,43 @@ export interface Correlation {
 function CorrelationCard({ correlation }: { correlation: Correlation }) {
   const styles = {
     info: {
-      bg: 'bg-blue-50',
-      border: 'border-blue-200',
-      icon: 'text-blue-500',
-      iconBg: 'bg-blue-100',
+      bg: 'bg-blue-50 dark:bg-blue-950/40',
+      border: 'border-blue-200 dark:border-blue-800/60',
+      text: 'text-blue-900 dark:text-blue-200',
+      icon: 'text-blue-900 dark:text-blue-200',
+      iconBg: 'bg-blue-100 dark:bg-blue-950/60',
     },
     attention: {
-      bg: 'bg-amber-50',
-      border: 'border-amber-200',
-      icon: 'text-amber-500',
-      iconBg: 'bg-amber-100',
+      bg: 'bg-amber-50 dark:bg-amber-950/40',
+      border: 'border-amber-200 dark:border-amber-800/60',
+      text: 'text-amber-900 dark:text-amber-200',
+      icon: 'text-amber-900 dark:text-amber-200',
+      iconBg: 'bg-amber-100 dark:bg-amber-950/60',
     },
     important: {
-      bg: 'bg-red-50',
-      border: 'border-red-200',
-      icon: 'text-red-500',
-      iconBg: 'bg-red-100',
+      bg: 'bg-red-50 dark:bg-red-950/40',
+      border: 'border-red-200 dark:border-red-800/60',
+      text: 'text-red-900 dark:text-red-200',
+      icon: 'text-red-900 dark:text-red-200',
+      iconBg: 'bg-red-100 dark:bg-red-950/60',
     },
   };
 
   const style = styles[correlation.severity];
 
   return (
-    <div className={`${style.bg} border ${style.border} dark:border-slate-700 rounded-lg p-4`}>
+    <div className={`${style.bg} border ${style.border} rounded-lg p-4 correlation-card`}>
       <div className="flex items-start gap-3">
         <div className={`p-2 rounded-lg ${style.iconBg} ${style.icon}`}>
           <Lightbulb className="w-5 h-5" />
         </div>
         <div className="flex-1">
           <div className="flex items-center gap-2 mb-1">
-            <span className="font-medium text-gray-900 dark:text-slate-100">{correlation.symptom}</span>
+            <span className={`font-medium ${style.text} print:text-slate-900`}>{correlation.symptom}</span>
             <span className="text-gray-400 dark:text-slate-300">→</span>
-            <span className="font-medium text-gray-900 dark:text-slate-100">{correlation.labFinding}</span>
+            <span className={`font-medium ${style.text} print:text-slate-900`}>{correlation.labFinding}</span>
           </div>
-          <p className="text-sm text-gray-600 dark:text-slate-300">{correlation.observation}</p>
+          <p className={`text-sm ${style.text} print:text-slate-900`}>{correlation.observation}</p>
         </div>
       </div>
     </div>
@@ -152,7 +155,7 @@ export function CorrelationCallout({ correlations }: CorrelationCalloutProps) {
  */
 export function detectCorrelations(
   symptoms: string | undefined,
-  labItems: Array<{ test_name: string; status: string; value: string }>
+  labItems: Array<{ test_name: string; status: string; value: string; unit?: string }>
 ): Correlation[] {
   const correlations: Correlation[] = [];
 
@@ -173,10 +176,10 @@ export function detectCorrelations(
     if (hemoglobin?.status === 'LOW') {
       correlations.push({
         id: 'fatigue-anemia',
-        symptom: 'Fatigue symptoms',
-        labFinding: `Low Hemoglobin (${hemoglobin.value})`,
+        symptom: 'Reported fatigue / low energy',
+        labFinding: `Low Hemoglobin (${hemoglobin.value} ${hemoglobin.unit || ''})`.trim(),
         observation:
-          'Low hemoglobin may contribute to fatigue. Consider evaluating for anemia.',
+          'Reported fatigue coincides with a laboratory result below reference range. Observational correlation for clinical review.',
         severity: 'attention',
       });
     }
@@ -192,10 +195,10 @@ export function detectCorrelations(
     if (glucose?.status === 'HIGH') {
       correlations.push({
         id: 'thirst-glucose',
-        symptom: 'Increased thirst',
-        labFinding: `Elevated Glucose (${glucose.value})`,
+        symptom: 'Reported increased thirst',
+        labFinding: `Elevated Glucose (${glucose.value} ${glucose.unit || ''})`.trim(),
         observation:
-          'Elevated fasting glucose may be consistent with reported thirst. Consider diabetes evaluation.',
+          'Reported increased thirst coincides with blood glucose above source reference range. Observational correlation for clinical review.',
         severity: 'attention',
       });
     }
@@ -204,10 +207,10 @@ export function detectCorrelations(
     if (hba1c?.status === 'HIGH') {
       correlations.push({
         id: 'thirst-hba1c',
-        symptom: 'Increased thirst',
-        labFinding: `Elevated HbA1c (${hba1c.value})`,
+        symptom: 'Reported increased thirst',
+        labFinding: `Elevated HbA1c (${hba1c.value} ${hba1c.unit || ''})`.trim(),
         observation:
-          'Elevated HbA1c suggests average blood sugar over past 3 months.',
+          'Reported thirst coincides with elevated HbA1c in source report. Observational correlation for clinical review.',
         severity: 'attention',
       });
     }
@@ -225,10 +228,10 @@ export function detectCorrelations(
     if (glucose?.status === 'HIGH') {
       correlations.push({
         id: 'polyuria-glucose',
-        symptom: 'Frequent urination',
-        labFinding: `Elevated Glucose (${glucose.value})`,
+        symptom: 'Reported frequent urination',
+        labFinding: `Elevated Glucose (${glucose.value} ${glucose.unit || ''})`.trim(),
         observation:
-          'Elevated glucose can cause increased urination. May indicate need for glycemic control.',
+          'Reported urinary frequency coincides with elevated glucose in source report. Observational correlation for clinical review.',
         severity: 'attention',
       });
     }
@@ -244,26 +247,26 @@ export function detectCorrelations(
     if (hemoglobin?.status === 'LOW') {
       correlations.push({
         id: 'sob-anemia',
-        symptom: 'Shortness of breath',
-        labFinding: `Low Hemoglobin (${hemoglobin.value})`,
+        symptom: 'Reported shortness of breath',
+        labFinding: `Low Hemoglobin (${hemoglobin.value} ${hemoglobin.unit || ''})`.trim(),
         observation:
-          'Low hemoglobin (anemia) can cause shortness of breath. Evaluate for underlying cause.',
+          'Reported shortness of breath coincides with hemoglobin below source reference range. Observational correlation for clinical review.',
         severity: 'attention',
       });
     }
   }
 
   // Elevated WBC + Inflammation indicators
-  const wbc = labMap.get('white blood cell count') || labMap.get('wbc');
-  const crp = labMap.get('c-reactive protein') || labMap.get('crp');
+  const wbc = labMap.get('white blood cell count') || labMap.get('wbc') || labMap.get('total leukocyte count');
+  const crp = labMap.get('c-reactive protein') || labMap.get('crp') || labMap.get('c-reactive protein (crp)');
 
   if (wbc?.status === 'HIGH' && crp?.status === 'HIGH') {
     correlations.push({
       id: 'inflammation',
-      symptom: 'Signs of inflammation',
+      symptom: 'Concurrent lab findings',
       labFinding: `High WBC + High CRP`,
       observation:
-        'Both elevated white blood cells and CRP suggest active inflammation. Clinical correlation recommended.',
+        'Both leukocyte count and CRP exceed source document reference ranges. Observational correlation for clinical review.',
       severity: 'important',
     });
   }

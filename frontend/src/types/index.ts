@@ -3,6 +3,7 @@
 export enum ProvenanceType {
   PATIENT_REPORTED = 'patient_reported',
   AI_EXTRACTED = 'ai_extracted',
+  VERIFIED_BY_USER = 'verified_by_user',
 }
 
 export enum ReportType {

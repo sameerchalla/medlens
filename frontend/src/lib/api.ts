@@ -1,7 +1,6 @@
 import type {
   PatientRecord,
   Report,
-  ExtractionResult,
   HealthResponse,
   ProvenanceType,
 } from '../types';
@@ -112,11 +111,11 @@ export async function uploadReport(
   return handleResponse<Report>(response);
 }
 
-export async function extractFromReport(reportId: string): Promise<ExtractionResult> {
+export async function extractFromReport(reportId: string): Promise<TextExtractionResponse> {
   const response = await fetch(`${API_BASE}/reports/${reportId}/extract`, {
     method: 'POST',
   });
-  return handleResponse<ExtractionResult>(response);
+  return handleResponse<TextExtractionResponse>(response);
 }
 
 // Text extraction endpoint

@@ -13,8 +13,10 @@ from app.services.extraction import (
     ExtractionOutput,
     LabItem,
     LabStatus,
+    PDF_AVAILABLE,
     extract_text_from_file,
     extract_clinical_data,
+    extract_local_clinical_data,
     get_mock_extraction,
     SAFETY_DISCLAIMER,
 )
@@ -47,6 +49,7 @@ class LabItemResponse(BaseModel):
     reference_range_source: str
     status: LabStatus
     source_snippet: str
+    provenance: str = "ai_extracted"
 
 
 class ExtractionResponse(BaseModel):
@@ -65,20 +68,43 @@ class ExtractionResponse(BaseModel):
 # ROUTES
 # =============================================================================
 
+MAX_FILE_SIZE = int(os.getenv("MAX_FILE_SIZE", 10 * 1024 * 1024))  # 10 MB default
+
+
 @router.post("/upload", response_model=Report)
 async def upload_report(
     file: UploadFile = File(...),
     document_type: str = Form(default="other")
 ):
     """Upload a clinical report."""
+    if not file.filename:
+        raise HTTPException(status_code=400, detail="Filename missing")
+
+    # Sanitize filename - strip path components
+    clean_filename = Path(file.filename).name
+    file_ext = Path(clean_filename).suffix.lower()
+
     # Validate file type
     allowed_extensions = {".txt", ".pdf", ".md", ".csv"}
-    file_ext = Path(file.filename).suffix.lower()
-
     if file_ext not in allowed_extensions:
         raise HTTPException(
             status_code=400,
             detail=f"File type not allowed. Allowed: {', '.join(allowed_extensions)}"
+        )
+
+    # Read content and validate size
+    content = await file.read()
+    if len(content) > MAX_FILE_SIZE:
+        raise HTTPException(
+            status_code=413,
+            detail=f"File size exceeds maximum allowed limit of {MAX_FILE_SIZE // (1024 * 1024)}MB"
+        )
+
+    # If PDF, verify PDF magic bytes
+    if file_ext == ".pdf" and not content.startswith(b"%PDF"):
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid PDF file format. Missing standard PDF signature."
         )
 
     # Generate unique filename
@@ -86,15 +112,14 @@ async def upload_report(
     safe_filename = f"{file_id}{file_ext}"
     file_path = UPLOAD_DIR / safe_filename
 
-    # Save file
-    content = await file.read()
+    # Save file securely
     with open(file_path, "wb") as f:
         f.write(content)
 
     # Create report record
     report = Report(
         id=file_id,
-        filename=file.filename or "unknown",
+        filename=clean_filename,
         upload_date=datetime.utcnow(),
         document_type=ReportType(document_type) if document_type in [e.value for e in ReportType] else ReportType.OTHER,
         content="",  # Content will be extracted separately
@@ -149,18 +174,105 @@ async def extract_from_report(
         extraction = get_mock_extraction(report.filename)
         extraction_mode = ExtractionMode.MOCK
     else:
-        # Read and extract from file
+        # Read file content
+        content = b""
         try:
             with open(file_path, 'rb') as f:
                 content = f.read()
+        except Exception:
+            pass
 
+        # Try primary extraction; if it fails (e.g., API rate-limit), fall back to
+        # deterministic local extraction using pypdf + regex instead of a mock.
+        primary_extraction = None
+        try:
             text = extract_text_from_file(report.filename, content)
-            extraction = extract_clinical_data(text, report.filename)
+            primary_extraction = extract_clinical_data(text, report.filename)
+            extraction = primary_extraction
             extraction_mode = ExtractionMode.LIVE
+
+            # DEBUG: Log primary extraction results
+            print(f"[DEBUG] Primary extraction completed:")
+            print(f"  Items extracted: {len(primary_extraction.lab_items)}")
+            if primary_extraction.lab_items:
+                print(f"  Test names: {[item.test_name for item in primary_extraction.lab_items]}")
         except Exception as e:
-            # Fallback to mock on error
-            extraction = get_mock_extraction(report.filename)
-            extraction_mode = ExtractionMode.MOCK
+            # Primary parser failed (API error, rate limit, etc.)
+            # Fall through to local engine below
+            print(f"[DEBUG] Primary extraction failed: {e}")
+            primary_extraction = None
+
+        # Low-confidence detection: if primary returned < 2 items, or ANY test name has
+        # length <= 3 (like "fb"), or all items are UNSPECIFIED, execute local engine
+        if primary_extraction:
+            has_low_confidence = False
+            low_confidence_reasons = []
+
+            # Check 1: Fewer than 2 items
+            if len(primary_extraction.lab_items) < 2:
+                has_low_confidence = True
+                low_confidence_reasons.append(f"fewer than 2 items ({len(primary_extraction.lab_items)})")
+
+            # Check 2: ANY test name with length <= 3 (catches "fb", "h", etc.)
+            short_names = [
+                item.test_name for item in primary_extraction.lab_items
+                if len(item.test_name.strip()) <= 3
+            ]
+            if short_names:
+                has_low_confidence = True
+                low_confidence_reasons.append(f"short test names: {short_names}")
+
+            # Check 3: All items are UNSPECIFIED
+            if not has_low_confidence:  # Only check if not already flagged
+                all_unspecified = all(
+                    item.status == LabStatus.UNSPECIFIED
+                    for item in primary_extraction.lab_items
+                )
+                if all_unspecified:
+                    has_low_confidence = True
+                    low_confidence_reasons.append("all items have UNSPECIFIED status")
+
+            # Check 4: Test names are just digits
+            digit_names = [
+                item.test_name for item in primary_extraction.lab_items
+                if item.test_name.strip().isdigit()
+            ]
+            if digit_names:
+                has_low_confidence = True
+                low_confidence_reasons.append(f"numeric test names: {digit_names}")
+
+            print(f"[DEBUG] Low confidence check: {has_low_confidence}")
+            if has_low_confidence:
+                print(f"[DEBUG] Reasons: {', '.join(low_confidence_reasons)}")
+
+            if has_low_confidence:
+                # Run local engine as fallback
+                if content and PDF_AVAILABLE:
+                    print(f"[DEBUG] Running local engine fallback...")
+                    local_extraction = extract_local_clinical_data(content, report.filename)
+                    print(f"[DEBUG] Local engine extracted: {len(local_extraction.lab_items)} items")
+                    if local_extraction.lab_items:
+                        print(f"[DEBUG] Local test names: {[item.test_name for item in local_extraction.lab_items]}")
+
+                    # ALWAYS use local engine results if they're better (more items)
+                    if len(local_extraction.lab_items) > len(primary_extraction.lab_items):
+                        print(f"[DEBUG] Using local engine results ({len(local_extraction.lab_items)} > {len(primary_extraction.lab_items)})")
+                        extraction = local_extraction
+                        extraction_mode = ExtractionMode.LIVE
+                    else:
+                        print(f"[DEBUG] Keeping primary results (local didn't find more items)")
+
+        # If primary extraction failed entirely, use local engine or mock
+        if primary_extraction is None:
+            if content and PDF_AVAILABLE:
+                print(f"[DEBUG] Primary failed, running local engine...")
+                extraction = extract_local_clinical_data(content, report.filename)
+                print(f"[DEBUG] Local engine extracted: {len(extraction.lab_items)} items")
+                extraction_mode = ExtractionMode.LIVE if extraction.lab_items else ExtractionMode.MOCK
+            else:
+                print(f"[DEBUG] No PDF parser available, using mock")
+                extraction = get_mock_extraction(report.filename)
+                extraction_mode = ExtractionMode.MOCK
 
     # Update report with extracted data
     report.content = extraction.raw_text
@@ -171,7 +283,7 @@ async def extract_from_report(
             "reference_range": item.reference_range_source,
             "status": item.status.value,
             "source_snippet": item.source_snippet,
-            "provenance": ProvenanceType.AI_EXTRACTED.value,
+            "provenance": item.provenance,
             "source_file": report.filename,
         }
         for item in extraction.lab_items
@@ -189,6 +301,7 @@ async def extract_from_report(
                 reference_range_source=item.reference_range_source,
                 status=item.status,
                 source_snippet=item.source_snippet,
+                provenance=item.provenance,
             )
             for item in extraction.lab_items
         ],
@@ -226,9 +339,72 @@ async def extract_from_text(
         extraction = get_mock_extraction(filename)
         extraction_mode = ExtractionMode.MOCK
     else:
-        # Perform live extraction
-        extraction = extract_clinical_data(text, filename)
-        extraction_mode = ExtractionMode.LIVE
+        # Check if text is actually corrupted PDF bytes (sent as text from frontend)
+        is_pdf_text = text.startswith('%PDF-') or filename.lower().endswith('.pdf')
+
+        if is_pdf_text:
+            print(f"[DEBUG] Detected PDF content sent as text (filename: {filename})")
+            print(f"[DEBUG] Attempting to recover by re-encoding as bytes...")
+            # Re-encode the text as latin1 bytes to recover the original PDF
+            try:
+                pdf_bytes = text.encode('latin1')
+                extraction = extract_local_clinical_data(pdf_bytes, filename)
+                extraction_mode = ExtractionMode.LIVE
+                print(f"[DEBUG] PDF recovery successful: {len(extraction.lab_items)} items extracted")
+            except Exception as e:
+                print(f"[DEBUG] PDF recovery failed: {e}, falling back to text extraction")
+                extraction = extract_clinical_data(text, filename)
+                extraction_mode = ExtractionMode.LIVE
+        else:
+            # Normal text extraction
+            extraction = extract_clinical_data(text, filename)
+            extraction_mode = ExtractionMode.LIVE
+
+        # Low-confidence detection: if extraction returned garbage tokens, try recovery
+        if extraction and extraction.lab_items:
+            print(f"[DEBUG] Text extraction completed: {len(extraction.lab_items)} items")
+            print(f"[DEBUG] Test names: {[item.test_name for item in extraction.lab_items]}")
+
+            has_low_confidence = False
+            low_confidence_reasons = []
+
+            # Check 1: Fewer than 2 items
+            if len(extraction.lab_items) < 2:
+                has_low_confidence = True
+                low_confidence_reasons.append(f"fewer than 2 items ({len(extraction.lab_items)})")
+
+            # Check 2: ANY test name with length <= 3 (catches "fb", "Mfb", "qq", "i'", etc.)
+            short_names = [
+                item.test_name for item in extraction.lab_items
+                if len(item.test_name.strip()) <= 3
+            ]
+            if short_names:
+                has_low_confidence = True
+                low_confidence_reasons.append(f"short test names: {short_names}")
+
+            # Check 3: All items are UNSPECIFIED
+            all_unspecified = all(
+                item.status == LabStatus.UNSPECIFIED
+                for item in extraction.lab_items
+            )
+            if all_unspecified:
+                has_low_confidence = True
+                low_confidence_reasons.append("all items have UNSPECIFIED status")
+
+            print(f"[DEBUG] Low confidence check: {has_low_confidence}")
+            if has_low_confidence:
+                print(f"[DEBUG] Reasons: {', '.join(low_confidence_reasons)}")
+                # If PDF filename but we got garbage, try PDF recovery
+                if filename.lower().endswith('.pdf') and not is_pdf_text:
+                    print(f"[DEBUG] PDF file with low confidence results, attempting recovery...")
+                    try:
+                        pdf_bytes = text.encode('latin1')
+                        local_extraction = extract_local_clinical_data(pdf_bytes, filename)
+                        if len(local_extraction.lab_items) > len(extraction.lab_items):
+                            print(f"[DEBUG] PDF recovery found more items: {len(local_extraction.lab_items)} > {len(extraction.lab_items)}")
+                            extraction = local_extraction
+                    except Exception as e:
+                        print(f"[DEBUG] PDF recovery failed: {e}")
 
     return ExtractionResponse(
         success=True,
@@ -242,6 +418,7 @@ async def extract_from_text(
                 reference_range_source=item.reference_range_source,
                 status=item.status,
                 source_snippet=item.source_snippet,
+                provenance=item.provenance,
             )
             for item in extraction.lab_items
         ],
