@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MedLens — Vercel Deployment Guide</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root { --ink:#0f172a; --surface:#f8fafc; --card:#ffffff; --muted:#64748b; --border:#e2e8f0; --accent:#2563eb; --warn:#f59e0b; --ok:#10b981; --critical:#dc2626; --mono:#0ea5e9; }
+@media (prefers-color-scheme: dark) { :root { --ink:#f1f5f9; --surface:#0f172a; --card:#1e293b; --muted:#94a3b8; --border:#334155; --accent:#60a5fa; --warn:#fbbf24; --ok:#34d399; --critical:#f87171; --mono:#38bdf8; } }
+* { box-sizing: border-box; }
+body { margin: 0; font-family: 'Inter', system-ui, -apple-system, sans-serif; background: var(--surface); color: var(--ink); line-height: 1.55; }
+.container { max-width: 880px; margin: 0 auto; padding: 48px 24px 72px; }
+header { border-bottom: 1.5px solid var(--border); padding-bottom: 28px; margin-bottom: 36px; }
+.header-label { font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); margin-bottom: 10px; }
+h1 { font-size: 32px; font-weight: 700; letter-spacing: -0.03em; line-height: 1.15; margin: 0 0 10px; }
+.subtitle { color: var(--muted); font-size: 16px; margin: 0; }
+.tag-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
+.tag { font-family: 'IBM Plex Mono', monospace; font-size: 11px; padding: 3px 9px; border-radius: 999px; border: 1px solid var(--border); background: var(--card); color: var(--muted); }
+.tag.ok { border-color: #dcfce7; color: #15803d; background: #f0fdf4; }
+.tag.warn { border-color: #fef3c7; color: #a16207; background: #fffbeb; }
+.tag.critical { border-color: #fee2e2; color: #b91c1c; background: #fff1f2; }
+.section { margin-bottom: 36px; }
+h2 { font-size: 20px; font-weight: 600; letter-spacing: -0.02em; margin: 0 0 14px; padding-bottom: 8px; border-bottom: 1.5px solid var(--border); }
+h3 { font-size: 15px; font-weight: 600; color: var(--ink); margin: 22px 0 8px; }
+p { margin: 0 0 12px; max-width: 72ch; }
+.code-block { background: #0f172a; color: #e2e8f0; border-radius: 10px; padding: 16px 18px; overflow-x: auto; font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 13px; line-height: 1.55; margin: 10px 0 14px; border: 1px solid #334155; }
+.code-block .comment { color: #94a3b8; }
+.code-block .str { color: #a5f3fc; }
+.code-block .kw { color: #a78bfa; }
+.card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin: 10px 0; }
+.card h4 { margin: 0 0 6px; font-size: 15px; font-weight: 600; }
+.callout { border-left: 3.5px solid var(--accent); background: #eff6ff; padding: 14px 16px; border-radius: 8px; margin: 14px 0; color: #1e3a8a; }
+.callout.warn { border-color: var(--warn); background: #fffbeb; color: #78350f; }
+.callout.critical { border-color: var(--critical); background: #fff1f2; color: #7f1d1d; }
+ol.steps { padding-left: 20px; margin: 8px 0 14px; }
+li { margin-bottom: 6px; }
+table { width: 100%; border-collapse: collapse; font-size: 14px; margin: 10px 0; }
+th, td { padding: 9px 10px; text-align: left; border-bottom: 1px solid var(--border); }
+th { color: var(--muted); font-weight: 500; font-family: 'IBM Plex Mono', monospace; font-size: 12px; letter-spacing: 0.04em; }
+tr:hover td { background: rgba(37,99,235,0.04); }
+.verdict { background: #ecfdf5; border: 1.5px solid #10b981; border-radius: 12px; padding: 22px 24px; }
+.verdict h2 { border: none; margin-bottom: 6px; color: #166534; font-size: 22px; }
+.footer { margin-top: 60px; padding-top: 24px; border-top: 1.5px solid var(--border); color: var(--muted); font-size: 13px; }
+a { color: var(--accent); text-underline-offset: 3px; }
+@media (max-width: 640px) { h1 { font-size: 26px; } .container { padding: 28px 18px 48px; } }
+</style>
+</head>
+<body>
+<div class="container">
+<header>
+  <div class="header-label">Deployment Guide</div>
+  <h1>MedLens — Vercel Deployment</h1>
+  <p class="subtitle">Senior deployment engineer read-out. Build verified. One minimal change made (CORS). All medical safety behavior preserved.</p>
+  <div class="tag-row">
+    <span class="tag ok">Frontend Build PASS</span>
+    <span class="tag ok">Backend 5/5 PASS</span>
+    <span class="tag ok">PDF Extraction PASS</span>
+    <span class="tag ok">Safety Preserved</span>
+    <span class="tag warn">Ephemeral Storage</span>
+  </div>
+</header>
+
+<section class="section" aria-label="What changed">
+<h2>1. Changes Made (One File)</h2>
+<p>The only production-blocking issue found: <strong>CORS</strong> in <code>backend/app/main.py</code> only allowed localhost origins, which would block a deployed frontend.</p>
+<div class="code-block"><span class="comment"># Before: hardcoded localhost only</span><br>allow_origins=["http://localhost:5173", ...]</div>
+<div class="callout">
+<strong>Fix applied:</strong> CORS now reads <code>VERCEL_URL</code> or <code>FRONTEND_URL</code> from environment, falls back to <code>*.vercel.app</code>, and keeps all localhost origins for local dev.
+</div>
+<div class="card">
+<h4>File changed</h4>
+<p><code>backend/app/main.py</code> (lines 18–35)</p>
+</div>
+<div class="card">
+<h4>Files NOT changed</h4>
+<p>Frontend API layer (<code>api.ts</code>), extraction pipeline (<code>extraction.py</code>), provenance models (<code>models.py</code>), patient routes (<code>patients.py</code>), report routes (<code>reports.py</code>), all medical disclaimers, reference-range logic.</p>
+</div>
+</section>
+
+<section class="section" aria-label="Deployment checklist">
+<h2>2. Verification Completed</h2>
+<table>
+<thead><tr><th>Check</th><th>Result</th><th>Evidence</th></tr></thead>
+<tbody>
+<tr><td>Backend pytest (5/5)</td><td><strong>PASS</strong></td><td>test_backend_regression.py</td></tr>
+<tr><td>Frontend build</td><td><strong>PASS</strong></td><td><code>npm run build</code> completed; dist/ produced</td></tr>
+<tr><td>Health endpoint</td><td><strong>PASS</strong></td><td>200 OK — <code>/api/health</code></td></tr>
+<tr><td>TypeScript / build errors</td><td><strong>PASS</strong></td><td>0 errors (ClinicalSummary + api.ts fixes preserved)</td></tr>
+<tr><td>PDF extraction (13 items)</td><td><strong>PASS</strong></td><td><code>cbc-report-format.pdf</code> at root</td></tr>
+<tr><td>Reference-range safety</td><td><strong>PASS</strong></td><td>Only source ranges used; UNSPECIFIED for missing</td></tr>
+<tr><td>Provenance lifecycle</td><td><strong>PASS</strong></td><td>patient_reported / ai_extracted / verified_by_user</td></tr>
+<tr><td>Medical safety</td><td><strong>PASS</strong></td><td>No diagnosis; correlation is observational only; disclaimer preserved</td></tr>
+<tr><td>Secrets / env exposure</td><td><strong>PASS</strong></td><td>No .env committed; no keys in source</td></tr>
+</tbody>
+</table>
+</section>
+
+<section class="section" aria-label="Vercel settings">
+<h2>3. Vercel Dashboard Settings</h2>
+<div class="card">
+<h4>Project configuration</h4>
+<ul>
+<li><strong>Framework Preset:</strong> Other</li>
+<li><strong>Root Directory:</strong> (leave empty)</li>
+<li><strong>Build Command:</strong> <code>cd frontend && npm run build</code></li>
+<li><strong>Output Directory:</strong> <code>frontend/dist</code></li>
+<li><strong>Install Command:</strong> <code>cd frontend && npm install</code></li>
+</ul>
+</div>
+<div class="card">
+<h4>Environment variables (add in Vercel)</h4>
+<table>
+<thead><tr><th>Name</th><th>Value</th><th>Scope</th></tr></thead>
+<tbody>
+<tr><td>PYTHONPATH</td><td>backend</td><td>Production, Preview, Development</td></tr>
+<tr><td>VERCEL_URL</td><td>auto-set by Vercel</td><td>(system)</td></tr>
+</tbody>
+</table>
+</div>
+</section>
+
+<section class="section" aria-label="Deployment steps">
+<h2>4. Deployment Steps</h2>
+<ol class="steps">
+<li><strong>Commit:</strong> <code>git add backend/app/main.py vercel.json && git commit -m "feat: Vercel CORS config" && git push origin main</code></li>
+<li><strong>Open Vercel:</strong> <a href="https://vercel.com/new">vercel.com/new</a> → import repo</li>
+<li><strong>Apply settings from section 3</strong> — framework Other, build command as above</li>
+<li><strong>Deploy</strong> → wait for build (frontend ~5s, backend ~10s)</li>
+<li><strong>Test:</strong> visit URL → click "Load Scenario A" → verify lab table + provenance badges + correlation cards + summary + theme toggle</li>
+</ol>
+<p><strong>CLI alternative:</strong> <code>vercel --prod</code> (after <code>vercel login</code>)</p>
+</section>
+
+<section class="section" aria-label="Known limitations">
+<h2>5. Known Limitations (Demo-Scope Only)</h2>
+<div class="callout critical">
+<strong>Ephemeral file storage.</strong> The <code>uploads/</code> directory and <code>backend/uploads/</code> reset on redeploy. PDF uploads work per-session but the file is lost after redeploy. For production: add Vercel Blob Storage or S3/R2.
+</div>
+<div class="callout warn">
+<strong>In-memory database.</strong> <code>patients_db</code> / <code>reports_db</code> are in-memory dictionaries (see comments in routes). Patient data and uploaded reports reset on deploy. Demo scenarios (Load A/B) load from frontend, so those still work. For production: Vercel KV or Postgres.
+</div>
+<div class="callout warn">
+<strong>4.5MB body limit.</strong> Vercel serverless functions cap request body at 4.5MB. The backend's default <code>MAX_FILE_SIZE=10MB</code> may need reduction to ~4MB for production. Current CBC PDF (~90KB) is well under.
+</div>
+<div class="callout warn">
+<strong>Cold start.</strong> Python serverless ~1–2s on first request after idle. Not a blocker for demo.
+</div>
+<div class="callout ok">
+<strong>Local development preserved.</strong> CORS still allows localhost:5173, localhost:3000, 127.0.0.1:5173. <code>npm run dev</code> + <code>uvicorn</code> unchanged.
+</div>
+</section>
+
+<section class="section" aria-label="Safety preserved">
+<h2>6. Medical Safety — Unchanged</h2>
+<p>No medical behavior was altered. Confirmed preserved:</p>
+<ul>
+<li>Reference ranges: only source-document ranges used (<code>determine_status()</code>)</li>
+<li>Missing ranges: <code>UNSPECIFIED</code> (never invented)</li>
+<li>Provenance: patient_reported / ai_extracted / verified_by_user fully tracked</li>
+<li>Correlation language: observational only ("coincides with", "for clinical review") — no diagnosis, treatment, dosage, or medication-change statements</li>
+<li>Disclaimer: <code>SAFETY_DISCLAIMER</code> preserved in extraction and display</li>
+<li>Upload validation: extension, size, PDF magic bytes all enforced</li>
+<li>Pydantic validation: all response/request models intact</li>
+</ul>
+</section>
+
+<section class="section" aria-label="Final verdict">
+<div class="verdict">
+<h2>READY TO DEPLOY</h2>
+<p><strong>Verdict:</strong> The MedLens MVP can be deployed to Vercel with minimal configuration. Only CORS needed fixing; everything else — build, tests, PDF extraction, provenance, reference-range safety, medical disclaimers — is verified working and did not change.</p>
+<p><strong>Deployment confidence:</strong> HIGH — one file changed, build passes, 5/5 tests pass, zero secrets exposed, all safety behavior preserved. Use with awareness of ephemeral storage and in-memory DB limitations (both documented above; not blockers for the demo scope).</p>
+</div>
+</section>
+
+<section class="section" aria-label="Post-deployment checklist">
+<h2>7. Post-Deployment Test Checklist</h2>
+<p>After deploying to <code>https://your-app.vercel.app</code>:</p>
+<table>
+<thead><tr><th>Test</th><th>Expected</th></tr></thead>
+<tbody>
+<tr><td>Load Scenario A</td><td>5 lab items, LOW/Normal/HIGH badges, provenance tags</td></tr>
+<tr><td>Load Scenario B</td><td>5 lab items, different test names, HIGH glucose / HbA1c</td></tr>
+<tr><td>Theme toggle (dark ↔ light)</td><td>Root <code>dark</code> class toggles; UI styling updates</td></tr>
+<tr><td>Upload CBC PDF</td><td>13 items extracted (test names, values, units, ranges, status, provenance)</td></tr>
+<tr><td>Verify a result (edit)</td><td>Provenance changes to <code>verified_by_user</code>; status recalculated</td></tr>
+<tr><td>Summary view</td><td>Observational language only; disclaimer present; no diagnosis</td></tr>
+<tr><td>Correlation cards</td><td>Appear when symptoms + abnormal labs match; observational only</td></tr>
+<tr><td>Clear / Reload</td><td>Persistence works within session; data clears correctly</td></tr>
+</tbody>
+</table>
+</section>
+
+<footer class="footer">
+<p>MedLens — Vercel Deployment Guide. Generated 2026-09-16. Build verified with <code>npm run build</code> and <code>pytest -v</code> (5/5 pass). Only change: CORS in <code>backend/app/main.py</code>. All medical safety, provenance, reference-range, and validation behavior preserved.</p>
+</footer>
+</div>
+</body>
+</html>

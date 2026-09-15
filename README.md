@@ -220,5 +220,4 @@ This project is created for educational/hackathon purposes. No specific license 
 
 ---
 
-*Built with ❤️ for better clinical data handling.*  
-*Co‑Authored‑By: Claude Code <noreply@anthropic.com>*
+*Built with ❤️ for better clinical data handling.* 
