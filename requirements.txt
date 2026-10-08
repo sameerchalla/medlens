@@ -1,0 +1,19 @@
+# Runtime dependencies for app.py (Streamlit patient/doctor/admin dashboard).
+# Tested on Python 3.11 (64-bit). Paddle wheels are unreliable on Python 3.13.
+#
+# Install order matters: PaddleOCR needs the framework installed first.
+#   python -m venv .venv
+#   pip install -r requirements.txt
+#
+# paddlex[ocr] installs the OCR pipeline's extra packages (lxml, regex,
+# opencv-contrib-python, ...). Without it PaddleOCR fails at startup with
+# "`OCR` requires additional dependencies".
+#
+# First OCR run downloads PaddleOCR models (~150 MB) and needs internet once.
+
+streamlit==1.65.0
+numpy==2.4.6
+pillow==12.3.0
+paddlepaddle==3.2.1
+paddleocr==3.2.0
+paddlex[ocr]==3.2.1

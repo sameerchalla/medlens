@@ -1,7 +1,11 @@
-import streamlit as st
+import html
+
 import numpy as np
-from paddleocr import PaddleOCR
+import streamlit as st
 from PIL import Image
+from paddleocr import PaddleOCR
+
+from ocr_parser import extract_lab_metrics, group_ocr_rows
 
 
 def classify_metric(value, ref_low, ref_high):
@@ -72,7 +76,6 @@ if view == "Patient Workspace":
         ["English", "Telugu"],
         horizontal=True,
     )
-    ocr = get_ocr()
     uploaded_file = st.file_uploader(
         "Upload Report Photo",
         type=["jpg", "jpeg", "png"],
@@ -81,67 +84,76 @@ if view == "Patient Workspace":
         st.session_state.counted_upload_ids.add(uploaded_file.file_id)
         st.session_state.total_uploads += 1
 
+    extracted_metrics = []
+    ocr_failed = False
     if uploaded_file:
-        image = np.array(Image.open(uploaded_file).convert("RGB"))
-        results = ocr.predict(image)
-        rows = []
-        for page in results:
-            texts = page.get("rec_texts")
-            if texts is None:
-                texts = page.get("texts", [])
-            boxes = page.get("rec_boxes")
-            if boxes is None:
-                boxes = page.get("dt_polys", [])
-
-            lines = []
-            for text, box in zip(texts, boxes):
-                coordinates = np.asarray(box)
-                if coordinates.ndim == 1:
-                    x_center = (coordinates[0] + coordinates[2]) / 2
-                    y_center = (coordinates[1] + coordinates[3]) / 2
-                else:
-                    x_center = (coordinates[:, 0].min() + coordinates[:, 0].max()) / 2
-                    y_center = (coordinates[:, 1].min() + coordinates[:, 1].max()) / 2
-                lines.append((y_center, x_center, str(text)))
-
-            lines.sort(key=lambda line: line[0])
-            page_rows = []
-            for line in lines:
-                if not page_rows or line[0] - page_rows[-1][0][0] > image.shape[0] * 0.015:
-                    page_rows.append([line])
-                else:
-                    page_rows[-1].append(line)
-            rows.extend(
-                " | ".join(line[2] for line in sorted(row, key=lambda line: line[1]))
-                for row in page_rows
+        # OCR loads only when a photo is uploaded, so a missing OCR setup
+        # does not stop the rest of the app from loading.
+        try:
+            ocr = get_ocr()
+        except Exception as error:
+            ocr_failed = True
+            st.error(
+                "The OCR engine could not start, so this photo cannot be read. "
+                f"Details: {error}"
             )
-        if rows:
-            st.write("\n".join(rows))
-    st.caption("Synthetic demo metrics (not extracted from the uploaded report).")
+        else:
+            image = np.array(Image.open(uploaded_file).convert("RGB"))
+            results = ocr.predict(image)
+            ocr_rows = group_ocr_rows(results, image.shape[0])
+            extracted_metrics = extract_lab_metrics(ocr_rows)
+            with st.expander("Raw OCR text"):
+                st.text("\n".join(ocr_rows) if ocr_rows else "No text detected.")
     status_colors = {
         "NORMAL": "#d1fae5",
         "HIGH": "#fee2e2",
         "LOW": "#fee2e2",
         "CHECK": "#fef3c7",
     }
-    table_rows = []
-    for metric in report["metrics"]:
-        status = classify_metric(
-            metric["value"], metric["ref_low"], metric["ref_high"]
+    if uploaded_file is None:
+        st.caption("Synthetic demo metrics (not extracted from the uploaded report).")
+        display_metrics = report["metrics"]
+    elif extracted_metrics:
+        st.caption(
+            "Read from the uploaded photo by OCR. A status is shown only where "
+            "the report prints a reference range; otherwise it is CHECK."
         )
-        table_rows.append(
-            f"<tr><td>{metric['component']}</td><td>{metric['value']}</td>"
-            f"<td>{metric['ref_low']}-{metric['ref_high']}</td>"
-            f"<td><span style='background-color:{status_colors[status]};"
-            f"padding:4px 10px;border-radius:999px'>{status}</span></td></tr>"
+        display_metrics = extracted_metrics
+    elif ocr_failed:
+        display_metrics = []
+    else:
+        display_metrics = []
+        st.warning(
+            "No lab values could be read from this photo. Check that the page "
+            "is upright, well lit and in focus. See Raw OCR text above."
         )
-    st.markdown(
-        "<table><thead><tr><th>Component</th><th>Value</th>"
-        "<th>Reference Range</th><th>Status</th></tr></thead><tbody>"
-        + "".join(table_rows)
-        + "</tbody></table>",
-        unsafe_allow_html=True,
-    )
+    if display_metrics:
+        table_rows = []
+        for metric in display_metrics:
+            status = classify_metric(
+                metric["value"], metric["ref_low"], metric["ref_high"]
+            )
+            ref_text = metric.get("ref_text")
+            if ref_text is None:
+                ref_text = f"{metric['ref_low']}-{metric['ref_high']}"
+            elif not ref_text:
+                ref_text = "Not printed"
+            value_text = html.escape(str(metric["value"]))
+            if metric.get("unit"):
+                value_text += f" {html.escape(metric['unit'])}"
+            table_rows.append(
+                f"<tr><td>{html.escape(metric['component'])}</td><td>{value_text}</td>"
+                f"<td>{html.escape(ref_text)}</td>"
+                f"<td><span style='background-color:{status_colors[status]};"
+                f"padding:4px 10px;border-radius:999px'>{status}</span></td></tr>"
+            )
+        st.markdown(
+            "<table><thead><tr><th>Component</th><th>Value</th>"
+            "<th>Reference Range</th><th>Status</th></tr></thead><tbody>"
+            + "".join(table_rows)
+            + "</tbody></table>",
+            unsafe_allow_html=True,
+        )
     st.subheader("📈 5-Month Metric Trend Tracker")
     trend_data = {
         "Dates": ["June", "July", "August", "September", "October"],
