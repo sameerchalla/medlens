@@ -76,7 +76,6 @@ if view == "Patient Workspace":
         ["English", "Telugu"],
         horizontal=True,
     )
-    ocr = get_ocr()
     uploaded_file = st.file_uploader(
         "Upload Report Photo",
         type=["jpg", "jpeg", "png"],
@@ -86,13 +85,25 @@ if view == "Patient Workspace":
         st.session_state.total_uploads += 1
 
     extracted_metrics = []
+    ocr_failed = False
     if uploaded_file:
-        image = np.array(Image.open(uploaded_file).convert("RGB"))
-        results = ocr.predict(image)
-        ocr_rows = group_ocr_rows(results, image.shape[0])
-        extracted_metrics = extract_lab_metrics(ocr_rows)
-        with st.expander("Raw OCR text"):
-            st.text("\n".join(ocr_rows) if ocr_rows else "No text detected.")
+        # OCR loads only when a photo is uploaded, so a missing OCR setup
+        # does not stop the rest of the app from loading.
+        try:
+            ocr = get_ocr()
+        except Exception as error:
+            ocr_failed = True
+            st.error(
+                "The OCR engine could not start, so this photo cannot be read. "
+                f"Details: {error}"
+            )
+        else:
+            image = np.array(Image.open(uploaded_file).convert("RGB"))
+            results = ocr.predict(image)
+            ocr_rows = group_ocr_rows(results, image.shape[0])
+            extracted_metrics = extract_lab_metrics(ocr_rows)
+            with st.expander("Raw OCR text"):
+                st.text("\n".join(ocr_rows) if ocr_rows else "No text detected.")
     status_colors = {
         "NORMAL": "#d1fae5",
         "HIGH": "#fee2e2",
@@ -108,6 +119,8 @@ if view == "Patient Workspace":
             "the report prints a reference range; otherwise it is CHECK."
         )
         display_metrics = extracted_metrics
+    elif ocr_failed:
+        display_metrics = []
     else:
         display_metrics = []
         st.warning(
