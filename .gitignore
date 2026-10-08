@@ -1,12 +1,11 @@
-<<<<<<< HEAD
-.venv/ 
-__pycache__/ 
-=======
-# Dependencies
-node_modules/
+# Python virtual environments & bytecode
+.venv/
 backend/venv/
 __pycache__/
 *.pyc
+
+# Dependencies
+node_modules/
 
 # Environment & Secret Keys
 .env
@@ -23,4 +22,3 @@ backend/uploads/*
 !backend/uploads/.gitkeep
 *.pdf
 *.png
->>>>>>> c84030f55f7f6a6beb5f48773b1f027bc4eeced0
