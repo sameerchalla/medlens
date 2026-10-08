@@ -1,2 +1,26 @@
+<<<<<<< HEAD
 .venv/ 
 __pycache__/ 
+=======
+# Dependencies
+node_modules/
+backend/venv/
+__pycache__/
+*.pyc
+
+# Environment & Secret Keys
+.env
+.env.local
+.claude/
+docs/
+
+# Build artifacts
+frontend/dist/
+frontend/build/
+
+# Uploaded files and local test exports
+backend/uploads/*
+!backend/uploads/.gitkeep
+*.pdf
+*.png
+>>>>>>> c84030f55f7f6a6beb5f48773b1f027bc4eeced0
